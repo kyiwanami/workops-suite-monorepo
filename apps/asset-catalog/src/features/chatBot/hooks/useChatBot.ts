@@ -2,22 +2,29 @@ import { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/data";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { jwtDecode, type JwtPayload } from "jwt-decode";
-import { DocumentFormat } from "@aws-sdk/client-bedrock-runtime";
 import { v4 as uuidv4 } from "uuid";
 import type { Schema } from "@workops/data-schema";
 import type { Message } from "../types";
 import { processTraces } from "../utils";
 import packageJson from "../../../../package.json";
-import outputs from "../../../../amplify_outputs.json";
+import outputs from "../../../../../../packages/shared-backend/amplify_outputs.json";
 
 const client = generateClient<Schema>();
 const PAGE_SIZE = 10;
 const CHAT_PROJECT_ID = packageJson.name;
 
 // ファイル制限定数
-export const SUPPORTED_FILE_EXTENSIONS = Object.values(DocumentFormat).map(
-  (ext) => `.${ext}`,
-);
+export const SUPPORTED_FILE_EXTENSIONS = [
+  ".pdf",
+  ".csv",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".html",
+  ".txt",
+  ".md",
+];
 export const MAX_FILE_SIZE_MB = 4;
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 export const MAX_FILE_COUNT = 5;
@@ -57,13 +64,14 @@ export function useChatBot(sessionId: string) {
   const loadMessages = async (token?: string) => {
     setLoading(true);
 
-    const { data, errors } = await client.queries.listMessages({
-      projectId: CHAT_PROJECT_ID,
-      sessionId,
-      direction: "DESC",
-      limit: PAGE_SIZE,
-      nextToken: token,
-    });
+    const { data, errors, nextToken: newNextToken } = await client.models.ChatMessage.listChatMessageBySessionId(
+      { sessionId },
+      {
+        sortDirection: "DESC",
+        limit: PAGE_SIZE,
+        nextToken: token,
+      }
+    );
 
     if (errors) {
       console.error("Message list error", errors);
@@ -71,12 +79,12 @@ export function useChatBot(sessionId: string) {
       return;
     }
 
-    const processedItems: Message[] = (data?.items ?? []).map((item) => ({
-      id: item.messageId,
+    const processedItems: Message[] = (data ?? []).map((item) => ({
+      id: item.id,
       role: item.role,
       content: item.content,
       traces: item.traces ? processTraces(item.traces) : undefined,
-      createdAt: item.createdAt,
+      createdAt: item.createdAt ?? "",
     }));
 
     const reversedChunk = processedItems.reverse();
@@ -88,7 +96,7 @@ export function useChatBot(sessionId: string) {
       return [...reversedChunk, ...prev];
     });
 
-    setNextToken(data?.nextToken ?? undefined);
+    setNextToken(newNextToken ?? undefined);
     setLoading(false);
   };
 
@@ -109,7 +117,7 @@ export function useChatBot(sessionId: string) {
     }
   };
 
-  // AgentCore Runtime直接呼び出し
+  // AgentCore Runtime直接呼び出し（ダミーURL対応）
   const sendMessage = async (query: string, attachments?: Attachment[]) => {
     if (!query || !sessionId) {
       return;
@@ -129,37 +137,6 @@ export function useChatBot(sessionId: string) {
       ]);
     };
 
-    // Session存在確認して未作成なら作る
-    const { data: sessionData, errors: sessionGetErrors } =
-      await client.queries.getSession({
-        projectId: CHAT_PROJECT_ID,
-        sessionId,
-      });
-
-    if (sessionGetErrors) {
-      console.error("Session.get errors:", sessionGetErrors);
-      pushErrorMessage();
-      setLoading(false);
-      return;
-    }
-
-    if (!sessionData) {
-      const { errors: sessionCreateErrors } = await client.mutations.createSession(
-        {
-          projectId: CHAT_PROJECT_ID,
-          sessionId,
-          name: `会話 - ${new Date().toLocaleString("ja-JP")}`,
-        },
-      );
-
-      if (sessionCreateErrors) {
-        console.error("Session.create errors:", sessionCreateErrors);
-        pushErrorMessage();
-        setLoading(false);
-        return;
-      }
-    }
-
     // User Message作成（楽観的UI更新）
     const userMessageId = uuidv4();
     const userCreatedAt = new Date().toISOString();
@@ -171,10 +148,9 @@ export function useChatBot(sessionId: string) {
     };
     setMessages((prev) => [...prev, optimisticMsg]);
 
-    const { errors: userMessageErrors } = await client.mutations.createMessage({
-      projectId: CHAT_PROJECT_ID,
+    const { errors: userMessageErrors } = await client.models.ChatMessage.create({
       sessionId,
-      messageId: userMessageId,
+      projectId: CHAT_PROJECT_ID,
       role: "user",
       content: query,
       traces: null,
@@ -187,11 +163,10 @@ export function useChatBot(sessionId: string) {
       return;
     }
 
-    const { errors: userSessionUpdateErrors } = await client.mutations.updateSession(
+    const { errors: userSessionUpdateErrors } = await client.models.ChatSession.update(
       {
-        projectId: CHAT_PROJECT_ID,
-        sessionId,
-      },
+        id: sessionId,
+      }
     );
 
     if (userSessionUpdateErrors) {
@@ -292,10 +267,9 @@ export function useChatBot(sessionId: string) {
     };
     setMessages((prev) => [...prev, aiMsg]);
 
-    const { errors: aiMessageErrors } = await client.mutations.createMessage({
-      projectId: CHAT_PROJECT_ID,
+    const { errors: aiMessageErrors } = await client.models.ChatMessage.create({
       sessionId,
-      messageId: aiMessageId,
+      projectId: CHAT_PROJECT_ID,
       role: "assistant",
       content: aiAnswer,
       traces: result.traces ? JSON.stringify(result.traces) : undefined,
@@ -308,9 +282,8 @@ export function useChatBot(sessionId: string) {
       return;
     }
 
-    const { errors: aiSessionUpdateErrors } = await client.mutations.updateSession({
-      projectId: CHAT_PROJECT_ID,
-      sessionId,
+    const { errors: aiSessionUpdateErrors } = await client.models.ChatSession.update({
+      id: sessionId,
     });
 
     if (aiSessionUpdateErrors) {
@@ -332,6 +305,3 @@ export function useChatBot(sessionId: string) {
     validateFiles,
   };
 }
-
-
-

@@ -161,3 +161,14 @@ const userOperationActions = [
     })
   );
 });
+
+// ==================================================
+// カスタム出力: AgentCore Runtime ARN（ダミー値）
+// ==================================================
+// FIXME: 実際の AgentCore Runtime ARN が決まったら置き換える
+backend.addOutput({
+  custom: {
+    agentCoreRuntimeArn:
+      "arn:aws:bedrock-agentcore:ap-northeast-1:000000000000:runtime/dummy",
+  },
+});

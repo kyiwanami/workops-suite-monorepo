@@ -1,4 +1,3 @@
-import type { Message as BedrockMessage } from "@aws-sdk/client-bedrock-runtime";
 import type { Schema } from "@workops/data-schema";
 
 export interface KbChunk {
@@ -49,5 +48,24 @@ export interface SearchTodosResult {
 // スキーマEnumに合わせたチャットロール
 export type ChatRole = Schema["ChatRole"]["type"];
 
-// 内部ロジック用
-export type { BedrockMessage };
+// AgentCore トレースデータのローカル型定義（@aws-sdk/client-bedrock-runtime の代替）
+export interface BedrockContentBlock {
+  text?: string;
+  toolUse?: {
+    toolUseId: string;
+    name: string;
+    input?: Record<string, unknown>;
+  };
+  toolResult?: {
+    toolUseId: string;
+    content?: Array<{ json?: unknown }>;
+    status?: string;
+  };
+  [key: string]: unknown;
+}
+
+export interface BedrockMessage {
+  role?: string;
+  content?: BedrockContentBlock[];
+  [key: string]: unknown;
+}

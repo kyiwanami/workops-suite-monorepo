@@ -1,5 +1,4 @@
-import type { Message as BedrockMessage } from "@aws-sdk/client-bedrock-runtime";
-import type { TraceStep, KbChunk } from "./types";
+import type { TraceStep, KbChunk, BedrockMessage } from "./types";
 
 // トレース処理ロジック
 export function processTraces(

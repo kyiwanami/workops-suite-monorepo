@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/data";
-import { v4 as uuidv4 } from "uuid";
 import type { Schema } from "@workops/data-schema";
 import type { Session } from "../types";
 import packageJson from "../../../../package.json";
@@ -13,10 +12,15 @@ export function useSessions() {
 
   // セッション一覧を updatedAt の降順で取得する
   const loadSessions = async () => {
-    const { data, errors } = await client.queries.listSessions({
-      projectId: CHAT_PROJECT_ID,
-      limit: 50,
-    });
+    const { data, errors } = await client.models.ChatSession.listChatSessionByProjectId(
+      {
+        projectId: CHAT_PROJECT_ID,
+      },
+      {
+        limit: 50,
+        sortDirection: "DESC",
+      }
+    );
 
     if (errors) {
       console.error("Session list error", errors);
@@ -24,11 +28,11 @@ export function useSessions() {
       return;
     }
 
-    const sessionList: Session[] = (data?.items ?? []).map((item) => ({
-      id: item.sessionId,
+    const sessionList: Session[] = (data ?? []).map((item) => ({
+      id: item.id,
       name: item.name ?? "無題の会話",
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
+      createdAt: item.createdAt ?? "",
+      updatedAt: item.updatedAt ?? "",
     }));
 
     setSessions(sessionList);
@@ -38,40 +42,48 @@ export function useSessions() {
     void loadSessions();
   }, []);
 
-  // 新規セッション作成用のIDを払い出す
-  const createSession = (): string => {
-    const newSessionId = uuidv4();
-    return newSessionId;
+  // 新規セッションを作成し、自動生成されたIDを返す
+  const createSession = async (): Promise<string | null> => {
+    const { data, errors } = await client.models.ChatSession.create({
+      projectId: CHAT_PROJECT_ID,
+      name: `会話 - ${new Date().toLocaleString("ja-JP")}`,
+    });
+
+    if (errors || !data?.id) {
+      console.error("Session create error", errors);
+      return null;
+    }
+
+    await loadSessions();
+    return data.id;
   };
 
   // セッション削除時に配下メッセージを先に削除して整合性を保つ
   const deleteSession = async (sessionId: string) => {
     let varNextToken: string | null | undefined;
-    const allMessages: Schema["ChatMessage"]["type"][] = [];
+    const allMessages: Array<{ id: string }> = [];
 
     do {
-      const { data, errors } = await client.queries.listMessages({
-        projectId: CHAT_PROJECT_ID,
-        sessionId,
-        limit: 1000,
-        nextToken: varNextToken ?? undefined,
-        direction: "DESC",
-      });
+      const { data, errors, nextToken } = await client.models.ChatMessage.listChatMessageBySessionId(
+        { sessionId },
+        {
+          limit: 1000,
+          nextToken: varNextToken ?? undefined,
+        }
+      );
 
       if (errors) {
         console.error("Message list error", errors);
         return;
       }
 
-      allMessages.push(...(data?.items ?? []));
-      varNextToken = data?.nextToken ?? undefined;
+      allMessages.push(...(data ?? []));
+      varNextToken = nextToken;
     } while (varNextToken);
 
     for (const message of allMessages) {
-      const { errors } = await client.mutations.deleteMessage({
-        projectId: CHAT_PROJECT_ID,
-        sessionId,
-        messageId: message.messageId,
+      const { errors } = await client.models.ChatMessage.delete({
+        id: message.id,
       });
 
       if (errors) {
@@ -80,9 +92,8 @@ export function useSessions() {
       }
     }
 
-    const { errors } = await client.mutations.deleteSession({
-      projectId: CHAT_PROJECT_ID,
-      sessionId,
+    const { errors } = await client.models.ChatSession.delete({
+      id: sessionId,
     });
 
     if (errors) {

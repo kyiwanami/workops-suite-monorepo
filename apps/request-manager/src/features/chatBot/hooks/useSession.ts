@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@workops/data-schema";
 import type { Session } from "../types";
-import packageJson from "../../../../package.json";
 
 const client = generateClient<Schema>();
-const CHAT_PROJECT_ID = packageJson.name;
 
 export function useSession(sessionId: string | null) {
   const [session, setSession] = useState<Session | null>(null);
@@ -17,9 +15,8 @@ export function useSession(sessionId: string | null) {
         return;
       }
 
-      const { data, errors } = await client.queries.getSession({
-        projectId: CHAT_PROJECT_ID,
-        sessionId,
+      const { data, errors } = await client.models.ChatSession.get({
+        id: sessionId,
       });
 
       if (errors) {
@@ -34,10 +31,10 @@ export function useSession(sessionId: string | null) {
       }
 
       setSession({
-        id: data.sessionId,
+        id: data.id,
         name: data.name ?? "無題の会話",
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
+        createdAt: data.createdAt ?? "",
+        updatedAt: data.updatedAt ?? "",
       });
     };
 

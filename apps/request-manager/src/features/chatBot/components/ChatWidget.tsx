@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Fab,
   Paper,
@@ -29,9 +29,11 @@ export default function ChatWidget() {
   const { sessions, createSession, deleteSession } = useSessions();
   const currentSession = useSession(currentSessionId);
 
-  const handleNewSession = () => {
-    const newId = createSession();
-    setCurrentSessionId(newId);
+  const handleNewSession = async () => {
+    const newId = await createSession();
+    if (newId) {
+      setCurrentSessionId(newId);
+    }
   };
 
   const handleSelectSession = (sessionId: string) => {
@@ -48,10 +50,16 @@ export default function ChatWidget() {
   };
 
   // 初回表示時: セッションがない場合は自動で新規作成
-  if (sessions.length === 0 && !currentSessionId) {
-    const newId = createSession();
-    setCurrentSessionId(newId);
-  }
+  useEffect(() => {
+    if (sessions.length === 0 && !currentSessionId) {
+      void (async () => {
+        const newId = await createSession();
+        if (newId) {
+          setCurrentSessionId(newId);
+        }
+      })();
+    }
+  }, [sessions.length, currentSessionId, createSession]);
 
   // ヘッダータイトル取得
   function getHeaderTitle(): string {
