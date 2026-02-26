@@ -1,0 +1,8 @@
+{
+  "name": "workops-suite-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+    "folders": [
+        {
+            "path": "../workops-suite-asset-catalog"
+        },
+        {
+            "path": "."
+        },
+        {
+            "path": "../workops-suite-portal"
+        },
+        {
+            "path": "../workops-suite-request-manager"
+        }
+    ]
+}

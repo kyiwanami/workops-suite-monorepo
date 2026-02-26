@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@workops/data-schema": [
+        "./packages/shared-backend/amplify/data/resource"
+      ]
+    }
+  }
+}

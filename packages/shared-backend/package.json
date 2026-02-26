@@ -1,0 +1,13 @@
+{
+  "name": "@workops-suite/shared-backend",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "sandbox": "ampx sandbox"
+  },
+  "devDependencies": {
+    "@aws-amplify/backend": "latest",
+    "@aws-amplify/backend-cli": "latest",
+    "typescript": "latest"
+  }
+}
