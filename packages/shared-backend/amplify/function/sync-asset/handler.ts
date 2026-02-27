@@ -32,6 +32,7 @@ export const handler: DynamoDBStreamHandler = async (event) => {
       const asset = record.dynamodb?.NewImage;
 
       const departmentId = asset?.departmentId?.S || "未設定";
+      const name = asset?.name?.S || "未設定";
       const assetTypeId = asset?.assetTypeId?.S || "未設定";
       const status = asset?.status?.S || "未設定";
       const assigneeSub = asset?.assigneeSub?.S || "未割当";
@@ -40,6 +41,7 @@ export const handler: DynamoDBStreamHandler = async (event) => {
 
       const document = [
         `資産ID: ${assetId}`,
+        `名称: ${name}`,
         `部門ID: ${departmentId}`,
         `資産タイプID: ${assetTypeId}`,
         `ステータス: ${status}`,
@@ -52,6 +54,7 @@ export const handler: DynamoDBStreamHandler = async (event) => {
         metadataAttributes: {
           documentType: "asset",
           assetId,
+          name,
           departmentId,
           assetTypeId,
           status,

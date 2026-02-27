@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/data";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { jwtDecode, type JwtPayload } from "jwt-decode";
 import { v4 as uuidv4 } from "uuid";
 import type { Schema } from "@workops/data-schema";
 import type { Message } from "../types";
 import { processTraces } from "../utils";
+import { useAuth } from "../../../shared/auth/useAuth";
 import packageJson from "../../../../package.json";
 import outputs from "../../../../../../packages/shared-backend/amplify_outputs.json";
 
@@ -59,6 +59,7 @@ export function useChatBot(sessionId: string) {
     undefined,
   );
   const [loading, setLoading] = useState(false);
+  const { userInfo } = useAuth();
 
   // メッセージ取得は新しい順で取り、UI表示用に反転する
   const loadMessages = async (token?: string) => {
@@ -187,15 +188,18 @@ export function useChatBot(sessionId: string) {
       return;
     }
 
-    // JWTからactorId（User Sub）を抽出
-    const decoded = jwtDecode<JwtPayload>(accessToken);
-    const actorId = decoded.sub;
+    // 認証コンテキストからユーザー情報（sub/部署コード）を取得
+    const requesterSub = userInfo.userId;
+    const departmentId = userInfo.departmentCode ?? "";
 
-    if (!actorId) {
-      console.error("JWT token does not contain sub claim");
+    if (!requesterSub) {
+      console.error("User info does not contain userId");
       pushErrorMessage();
       setLoading(false);
       return;
+    }
+    if (!departmentId) {
+      console.warn("User info does not contain departmentCode");
     }
 
     // AgentCore Runtime ARNから実行時にInvokeAgentRuntime URLを組み立てる
@@ -206,7 +210,14 @@ export function useChatBot(sessionId: string) {
     console.log("AgentCore Direct Invocation:");
     console.log("  URL:", url);
     console.log("  Access Token:", accessToken.substring(0, 20) + "...");
-    console.log("  Actor ID:", actorId);
+    console.log("  Requester Sub:", requesterSub);
+    console.log("  Department ID:", departmentId);
+
+    // 申請作成に必要なユーザー文脈をqueryへ連結して送信する
+    const queryWithUserContext = `${query}
+
+申請者のID（Cognito sub）: ${requesterSub}
+所属部門コード: ${departmentId}`;
 
     let result: { answer?: string; traces?: string | null } | null = null;
     try {
@@ -217,15 +228,9 @@ export function useChatBot(sessionId: string) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query,
+          query: queryWithUserContext,
           sessionId,
-          actorId,
           attachments,
-          sessionState: {
-            promptSessionAttributes: {
-              mode: "chat",
-            },
-          },
         }),
       });
 

@@ -49,6 +49,7 @@ export function AssetList() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [departmentFilter, setDepartmentFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
   const [assigneeFilter, setAssigneeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [assetTypeFilter, setAssetTypeFilter] = useState("");
@@ -66,6 +67,7 @@ export function AssetList() {
 
   const sortedAndFilteredAssets = useMemo(() => {
     const normalizedDepartmentFilter = departmentFilter.trim().toLowerCase();
+    const normalizedNameFilter = nameFilter.toLowerCase();
     const normalizedAssigneeFilter = assigneeFilter.trim().toLowerCase();
 
     const filtered = assets.filter((asset) => {
@@ -73,6 +75,10 @@ export function AssetList() {
         !ability.can("read", "Department") ||
         normalizedDepartmentFilter === "" ||
         asset.departmentId.toLowerCase().includes(normalizedDepartmentFilter);
+
+      const nameMatches =
+        normalizedNameFilter === "" ||
+        asset.name.toLowerCase().includes(normalizedNameFilter);
 
       const assigneeValue = (asset.assigneeSub ?? "").toLowerCase();
       const assigneeMatches =
@@ -83,7 +89,13 @@ export function AssetList() {
       const assetTypeMatches =
         assetTypeFilter === "" || asset.assetTypeId === assetTypeFilter;
 
-      return departmentMatches && assigneeMatches && statusMatches && assetTypeMatches;
+      return (
+        departmentMatches &&
+        nameMatches &&
+        assigneeMatches &&
+        statusMatches &&
+        assetTypeMatches
+      );
     });
 
     filtered.sort((left, right) => {
@@ -93,7 +105,7 @@ export function AssetList() {
     });
 
     return filtered;
-  }, [assets, departmentFilter, assigneeFilter, statusFilter, assetTypeFilter]);
+  }, [assets, departmentFilter, nameFilter, assigneeFilter, statusFilter, assetTypeFilter]);
 
   const currentItems = sortedAndFilteredAssets.slice(
     page * rowsPerPage,
@@ -180,6 +192,23 @@ export function AssetList() {
             />
           </Can>
           <TextField
+            label="名称"
+            value={nameFilter}
+            onChange={(event) => {
+              setNameFilter(event.target.value);
+              setPage(0);
+            }}
+            fullWidth
+            size="small"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
             label="利用者"
             value={assigneeFilter}
             onChange={(event) => {
@@ -244,6 +273,7 @@ export function AssetList() {
             <TableHead sx={{ bgcolor: "grey.50" }}>
               <TableRow>
                 <TableCell>ID</TableCell>
+                <TableCell>名称</TableCell>
                 <TableCell>部署</TableCell>
                 <TableCell>利用者</TableCell>
                 <TableCell>状態</TableCell>
@@ -263,6 +293,7 @@ export function AssetList() {
                       {asset.id.slice(0, 8)}…
                     </Typography>
                   </TableCell>
+                  <TableCell>{asset.name}</TableCell>
                   <TableCell>{asset.departmentId}</TableCell>
                   <TableCell>{asset.assigneeSub ?? "-"}</TableCell>
                   <TableCell>
@@ -309,7 +340,7 @@ export function AssetList() {
               ))}
               {sortedAndFilteredAssets.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={8}>
                     <Stack alignItems="center" spacing={1} py={4} color="text.secondary">
                       <Inventory2Icon sx={{ fontSize: 40, opacity: 0.4 }} />
                       <Typography variant="body2">資産データがありません</Typography>

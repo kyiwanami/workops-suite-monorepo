@@ -269,6 +269,7 @@ const schema = a
     Asset: a
       .model({
         departmentId: a.string().required(),
+        name: a.string().required(),
         assetTypeId: a.id().required(),
         assetType: a.belongsTo("AssetType", "assetTypeId"),
         status: a.ref("AssetStatusEnum").required(),

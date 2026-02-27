@@ -32,5 +32,5 @@ export const handler = async (event: { query: string }) => {
       score: result.score,
     })) || [];
 
-  return { results };
+  return { data: { results } };
 };

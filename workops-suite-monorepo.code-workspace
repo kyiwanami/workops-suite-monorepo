@@ -5,9 +5,6 @@
         },
         {
             "path": "../workops/workops-suite-agent"
-        },
-        {
-            "path": "../workops/workops-suite-asset-catalog"
         }
     ]
 }

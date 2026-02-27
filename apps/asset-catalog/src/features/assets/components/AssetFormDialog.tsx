@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { generateClient } from "aws-amplify/data";
 import {
   Box,
   Button,
@@ -15,6 +16,7 @@ import {
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAbility } from "@casl/react";
+import type { Schema } from "@workops/data-schema";
 import { useAsset, type AssetCreateInput } from "../hooks/useAssets";
 import { useAssetTypes } from "../hooks/useAssetTypes";
 import { useDepartments } from "../hooks/useDepartments";
@@ -26,6 +28,13 @@ import {
   buildAssetFormSchema,
   type AssetFormValues,
 } from "../schemas/assetFormSchema";
+
+const client = generateClient<Schema>();
+
+type AssigneeOption = {
+  sub: string;
+  label: string;
+};
 
 type AssetFormDialogProps = {
   open: boolean;
@@ -42,6 +51,8 @@ export function AssetFormDialog({ open, onClose, id }: AssetFormDialogProps) {
   const ability = useAbility(AbilityContext);
 
   const [loading, setLoading] = useState(false);
+  const [assigneeLoading, setAssigneeLoading] = useState(false);
+  const [assigneeOptions, setAssigneeOptions] = useState<AssigneeOption[]>([]);
   const canCreateAsset = ability.can("create", "Asset");
   const canUpdateAsset = ability.can("update", "Asset");
 
@@ -53,6 +64,7 @@ export function AssetFormDialog({ open, onClose, id }: AssetFormDialogProps) {
   const defaultValues: AssetFormValues = useMemo(
     () => ({
       departmentId: userInfo.departmentCode,
+      name: "",
       assetTypeId: "",
       status: "inStock",
       assigneeSub: "",
@@ -66,6 +78,46 @@ export function AssetFormDialog({ open, onClose, id }: AssetFormDialogProps) {
     reValidateMode: "onSubmit",
     defaultValues,
   });
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const fetchAssignableUsers = async () => {
+      setAssigneeLoading(true);
+      const listResult = await client.queries.listUsers();
+
+      if (listResult.errors?.length) {
+        console.error("GraphQL errors in listUsers:", listResult.errors);
+        showError("ユーザー一覧の取得に失敗しました");
+        setAssigneeOptions([]);
+        setAssigneeLoading(false);
+        return;
+      }
+
+      const users =
+        listResult.data?.filter(
+          (user): user is NonNullable<Schema["CognitoUser"]["type"]> =>
+            user !== null && user !== undefined,
+        ) ?? [];
+
+      const options = users.map((user) => {
+        const email = user.email ? ` / ${user.email}` : "";
+        return {
+          sub: user.username,
+          label: `${user.username}${email}`,
+        } satisfies AssigneeOption;
+      });
+
+      setAssigneeOptions(
+        options.sort((left, right) => left.label.localeCompare(right.label, "ja-JP")),
+      );
+      setAssigneeLoading(false);
+    };
+
+    void fetchAssignableUsers();
+  }, [open]);
 
   useEffect(() => {
     const fetchAsset = async () => {
@@ -83,9 +135,10 @@ export function AssetFormDialog({ open, onClose, id }: AssetFormDialogProps) {
       if (current) {
         reset({
           departmentId: current.departmentId,
+          name: current.name,
           assetTypeId: current.assetTypeId,
           status: current.status,
-          assigneeSub: current.assigneeSub,
+          assigneeSub: current.assigneeSub ?? "",
         });
       } else {
         showError("資産データの取得に失敗しました");
@@ -116,9 +169,10 @@ export function AssetFormDialog({ open, onClose, id }: AssetFormDialogProps) {
 
     const payload: AssetCreateInput = {
       departmentId: values.departmentId,
+      name: values.name,
       assetTypeId: values.assetTypeId,
       status: values.status,
-      assigneeSub: values.assigneeSub,
+      assigneeSub: values.assigneeSub ? values.assigneeSub : null,
     };
 
     if (id) {
@@ -201,6 +255,23 @@ export function AssetFormDialog({ open, onClose, id }: AssetFormDialogProps) {
               )}
             />
 
+
+            <Controller
+              name="name"
+              control={control}
+              render={({ field, fieldState }) => (
+                <TextField
+                  {...field}
+                  required
+                  label="名称"
+                  fullWidth
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                  disabled={loading}
+                />
+              )}
+            />
+
             <Controller
               name="status"
               control={control}
@@ -227,14 +298,23 @@ export function AssetFormDialog({ open, onClose, id }: AssetFormDialogProps) {
             <Controller
               name="assigneeSub"
               control={control}
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <TextField
                   {...field}
-                  label="利用者Sub"
-                  placeholder="ユーザーの Cognito Sub"
+                  select
+                  label="利用者"
                   fullWidth
-                  disabled={loading}
-                />
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                  disabled={loading || assigneeLoading}
+                >
+                  <MenuItem value="">未割当</MenuItem>
+                  {assigneeOptions.map((option) => (
+                    <MenuItem key={option.sub} value={option.sub}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
               )}
             />
           </Stack>

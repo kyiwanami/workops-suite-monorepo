@@ -141,6 +141,12 @@ export function AssetDetail() {
               </FieldItem>
             </Grid>
 
+            <Grid size={{ xs: 12 }}>
+              <FieldItem label="名称">
+                <Typography variant="body1">{asset.name}</Typography>
+              </FieldItem>
+            </Grid>
+
             <Grid size={{ xs: 12, sm: 6 }}>
               <FieldItem label="部署コード">
                 <Typography variant="body1">{asset.departmentId}</Typography>

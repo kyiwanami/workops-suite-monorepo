@@ -21,5 +21,5 @@ export const handler = async (event: GetRequestInput) => {
     throw new Error(errors.map((error) => error.message).join(", "));
   }
 
-  return data;
+  return { data };
 };

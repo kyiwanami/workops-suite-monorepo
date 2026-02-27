@@ -21,5 +21,5 @@ export const handler = async () => {
     throw new Error(errors.map((error) => error.message).join(", "));
   }
 
-  return data;
+  return { data: data ?? [] };
 };

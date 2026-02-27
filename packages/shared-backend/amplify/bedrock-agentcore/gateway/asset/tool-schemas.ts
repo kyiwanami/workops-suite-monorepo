@@ -30,6 +30,10 @@ export const createAssetToolSchema = ToolSchema.fromInline([
           type: SchemaDefinitionType.STRING,
           description: "資産が所属する部門コード（必須）",
         },
+        name: {
+          type: SchemaDefinitionType.STRING,
+          description: "資産名称（必須）",
+        },
         assetTypeId: {
           type: SchemaDefinitionType.STRING,
           description: "資産タイプID（必須）",
@@ -44,7 +48,7 @@ export const createAssetToolSchema = ToolSchema.fromInline([
           description: "担当者の Cognito sub（省略可能）",
         },
       },
-      required: ["departmentId", "assetTypeId", "status"],
+      required: ["departmentId", "name", "assetTypeId", "status"],
     },
   },
 ]);
@@ -67,6 +71,10 @@ export const updateAssetToolSchema = ToolSchema.fromInline([
         departmentId: {
           type: SchemaDefinitionType.STRING,
           description: "新しい部署コード",
+        },
+        name: {
+          type: SchemaDefinitionType.STRING,
+          description: "新しい資産名称",
         },
         status: {
           type: SchemaDefinitionType.STRING,
