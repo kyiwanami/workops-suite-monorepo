@@ -1,5 +1,6 @@
 import { defineBackend } from "@aws-amplify/backend";
 import { aws_iam as iam } from "aws-cdk-lib";
+import { Provider } from "aws-cdk-lib/custom-resources";
 import { StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { auth, setupAuth } from "./auth/resource";
@@ -10,6 +11,7 @@ import { getUserFunction } from "./function/user-operations/get-user/resource";
 import { createUserFunction } from "./function/user-operations/create-user/resource";
 import { setUserEnabledFunction } from "./function/user-operations/set-user-enabled/resource";
 import { deleteUserFunction } from "./function/user-operations/delete-user/resource";
+import { registerCallbackUrlFunction } from "./function/register-callback-url/resource";
 
 import { listGroupsFunction } from "./function/group-operations/list-groups/resource";
 import { createGroupFunction } from "./function/group-operations/create-group/resource";
@@ -30,6 +32,7 @@ const backend = defineBackend({
   createUserFunction,
   setUserEnabledFunction,
   deleteUserFunction,
+  registerCallbackUrlFunction,
   listGroupsFunction,
   createGroupFunction,
   deleteGroupFunction,
@@ -43,17 +46,6 @@ const backend = defineBackend({
 
 // Backend型をエクスポート
 export type BackendType = typeof backend;
-
-// ブランチ名取得
-// - Amplifyビルド時: AWS_BRANCH環境変数から取得
-// - ローカルsandbox: 'sandbox'固定
-const branchName = process.env.AWS_BRANCH || "sandbox";
-
-// パスプレフィックス生成 (workops-suite-{branchName})
-const pathPrefix = `workops-suite-${branchName}`;
-
-// Auth設定（Cognito User Poolなど）を適用
-setupAuth(backend, pathPrefix);
 
 // 各関数に環境変数を設定
 const userPoolId = backend.auth.resources.userPool.userPoolId;
@@ -82,28 +74,28 @@ const userPoolId = backend.auth.resources.userPool.userPoolId;
 
 backend.departmentStreamHandlerFunction.addEnvironment("USER_POOL_ID", userPoolId);
 
-// ===========================================
-// DynamoDB Stream接続 (Department -> Cognito Group Sync)
-// ===========================================
-const departmentTable = backend.data.resources.tables["Department"];
-const departmentStreamHandlerLambda =
-  backend.departmentStreamHandlerFunction.resources.lambda;
+// ブランチ名取得
+// - Amplifyビルド時: AWS_BRANCH環境変数から取得
+// - ローカルsandbox: 'sandbox'固定
+const branchName = process.env.AWS_BRANCH || "sandbox";
 
-// DynamoDB Stream接続
-departmentStreamHandlerLambda.addEventSource(
-  new DynamoEventSource(departmentTable, {
-    startingPosition: StartingPosition.LATEST,
-    batchSize: 10,
-    retryAttempts: 3,
+// パスプレフィックス生成 (workops-suite-{branchName})
+const pathPrefix = `workops-suite-${branchName}`;
+
+// Auth設定（Cognito User Poolなど）を適用
+setupAuth(backend, pathPrefix);
+
+// ==================================================
+// IAM: 認証済みユーザーに AgentCore 実行権限を付与
+// ==================================================
+backend.auth.resources.authenticatedUserIamRole.addToPrincipalPolicy(
+  new PolicyStatement({
+    actions: ["bedrock-agentcore:InvokeAgentRuntime"],
+    resources: ["*"],
   })
 );
 
-departmentStreamHandlerLambda.addToRolePolicy(
-  new iam.PolicyStatement({
-    actions: ["cognito-idp:CreateGroup", "cognito-idp:DeleteGroup"],
-    resources: [backend.auth.resources.userPool.userPoolArn],
-  })
-);
+const userPool = backend.auth.resources.userPool;
 
 // ==================================================
 // IAM: グループ操作関数に Cognito 権限を付与
@@ -127,6 +119,29 @@ const userOperationActions = [
   "cognito-idp:AdminDeleteUser",
 ];
 
+// ===========================================
+// DynamoDB Stream接続 (Department -> Cognito Group Sync)
+// ===========================================
+const departmentTable = backend.data.resources.tables["Department"];
+const departmentStreamHandlerLambda =
+  backend.departmentStreamHandlerFunction.resources.lambda;
+
+// DynamoDB Stream接続
+departmentStreamHandlerLambda.addEventSource(
+  new DynamoEventSource(departmentTable, {
+    startingPosition: StartingPosition.LATEST,
+    batchSize: 10,
+    retryAttempts: 3,
+  })
+);
+
+departmentStreamHandlerLambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    actions: ["cognito-idp:CreateGroup", "cognito-idp:DeleteGroup"],
+    resources: [userPool.userPoolArn],
+  })
+);
+
 [
   backend.listGroupsFunction,
   backend.createGroupFunction,
@@ -139,7 +154,7 @@ const userOperationActions = [
   func.resources.lambda.addToRolePolicy(
     new iam.PolicyStatement({
       actions: groupOperationActions,
-      resources: [backend.auth.resources.userPool.userPoolArn],
+      resources: [userPool.userPoolArn],
     })
   );
 });
@@ -155,9 +170,9 @@ const userOperationActions = [
   backend.deleteUserFunction,
 ].forEach((func) => {
   func.resources.lambda.addToRolePolicy(
-    new PolicyStatement({
+    new iam.PolicyStatement({
       actions: userOperationActions,
-      resources: [backend.auth.resources.userPool.userPoolArn],
+      resources: [userPool.userPoolArn],
     })
   );
 });
@@ -172,3 +187,25 @@ backend.addOutput({
       "arn:aws:bedrock-agentcore:ap-northeast-1:000000000000:runtime/dummy",
   },
 });
+
+// ==================================================
+// CustomResource: サブシステムからのCallback URL登録
+// ==================================================
+// サンドボックス環境では不要
+if (process.env.AWS_BRANCH) {
+  // Lambda関数にCognito操作権限を付与
+  backend.registerCallbackUrlFunction.resources.lambda.addToRolePolicy(
+    new iam.PolicyStatement({
+      actions: [
+        "cognito-idp:DescribeUserPoolClient",
+        "cognito-idp:UpdateUserPoolClient",
+      ],
+      resources: [userPool.userPoolArn],
+    })
+  );
+
+  // CustomResource Provider作成
+  new Provider(backend.stack, "CallbackUrlProvider", {
+    onEventHandler: backend.registerCallbackUrlFunction.resources.lambda,
+  });
+}

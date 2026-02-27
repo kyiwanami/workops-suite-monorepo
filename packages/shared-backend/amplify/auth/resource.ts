@@ -2,10 +2,15 @@ import { defineAuth } from "@aws-amplify/backend";
 import type { BackendType } from "../backend";
 import { preTokenGenerationFunction } from "../function/pre-token-generation/resource";
 import {
+  CfnManagedLoginBranding,
+  CfnUserPoolDomain,
   LambdaVersion,
+  ManagedLoginVersion,
   UserPool,
   UserPoolOperation,
 } from "aws-cdk-lib/aws-cognito";
+
+const urls = ["http://localhost:5173/", "http://localhost:5174/", "http://localhost:5175/"];
 
 /**
  * Define and configure your auth resource
@@ -14,6 +19,11 @@ import {
 export const auth = defineAuth({
   loginWith: {
     email: true,
+    externalProviders: {
+      callbackUrls: urls,
+      logoutUrls: urls,
+      scopes: ["OPENID", "COGNITO_ADMIN"],
+    },
   },
   triggers: {
     preTokenGeneration: preTokenGenerationFunction,
@@ -23,7 +33,7 @@ export const auth = defineAuth({
 });
 
 export const setupAuth = (backend: BackendType, pathPrefix: string) => {
-  const { cfnUserPool } = backend.auth.resources.cfnResources;
+  const { cfnUserPool, cfnUserPoolClient } = backend.auth.resources.cfnResources;
 
   // ユーザープール名を明示的に指定
   cfnUserPool.userPoolName = `${pathPrefix}-user-pool`;
@@ -56,4 +66,23 @@ export const setupAuth = (backend: BackendType, pathPrefix: string) => {
       LambdaVersion.V2_0
     );
   }
+
+  // マネージドログインを有効化
+  // ドメインはデフォルトでは公開されていないので探索する必要がある
+  const userPoolDomain = backend.auth.resources.userPool.node
+    .findAll()
+    .find(
+      (child): child is CfnUserPoolDomain => child instanceof CfnUserPoolDomain
+    );
+  if (userPoolDomain) {
+    userPoolDomain.managedLoginVersion = ManagedLoginVersion.NEWER_MANAGED_LOGIN;
+  }
+
+  // Managed Loginのブランディング設定を有効化
+  // Cognitoデフォルトのスタイルを適用
+  new CfnManagedLoginBranding(backend.stack, "ManagedLoginBranding", {
+    userPoolId: cfnUserPool.userPoolRef.userPoolId,
+    clientId: cfnUserPoolClient.ref,
+    useCognitoProvidedValues: true,
+  });
 };
