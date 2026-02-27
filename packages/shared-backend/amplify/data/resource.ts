@@ -13,6 +13,20 @@ import { removeUserFromGroupFunction } from "../function/group-operations/remove
 import { listGroupsForUserFunction } from "../function/group-operations/list-groups-for-user/resource";
 import { listUsersInGroupFunction } from "../function/group-operations/list-users-in-group/resource";
 import { preTokenGenerationFunction } from "../function/pre-token-generation/resource";
+import { assetToolCreate } from "../function/tools/asset-tool-create/resource";
+import { assetKbSearch } from "../function/tools/asset-kb-search/resource";
+import { assetToolUpdate } from "../function/tools/asset-tool-update/resource";
+import { assetToolDelete } from "../function/tools/asset-tool-delete/resource";
+import { assetToolList } from "../function/tools/asset-tool-list/resource";
+import { assetToolGet } from "../function/tools/asset-tool-get/resource";
+import { assetTypeToolList } from "../function/tools/asset-type-tool-list/resource";
+import { assetTypeToolCreate } from "../function/tools/asset-type-tool-create/resource";
+import { requestToolCreate } from "../function/tools/request-tool-create/resource";
+import { requestKbSearch } from "../function/tools/request-kb-search/resource";
+import { requestToolGet } from "../function/tools/request-tool-get/resource";
+import { requestToolList } from "../function/tools/request-tool-list/resource";
+import { requestToolUpdate } from "../function/tools/request-tool-update/resource";
+import { requestTypeToolList } from "../function/tools/request-type-tool-list/resource";
 
 const schema = a
   .schema({
@@ -343,7 +357,22 @@ const schema = a
   })
   .authorization((allow) => [
     allow.authenticated(),
+    // LambdaのAppSyncアクセスはスキーマ単位でのみ付与可能
     allow.resource(preTokenGenerationFunction).to(["query"]),
+    allow.resource(assetToolCreate).to(["mutate"]),
+    allow.resource(assetKbSearch).to(["query"]),
+    allow.resource(assetToolUpdate).to(["mutate"]),
+    allow.resource(assetToolDelete).to(["mutate"]),
+    allow.resource(assetToolList).to(["query"]),
+    allow.resource(assetToolGet).to(["query"]),
+    allow.resource(assetTypeToolList).to(["query"]),
+    allow.resource(assetTypeToolCreate).to(["mutate"]),
+    allow.resource(requestToolCreate).to(["mutate"]),
+    allow.resource(requestKbSearch).to(["query"]),
+    allow.resource(requestToolGet).to(["query"]),
+    allow.resource(requestToolList).to(["query"]),
+    allow.resource(requestToolUpdate).to(["mutate"]),
+    allow.resource(requestTypeToolList).to(["query"]),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

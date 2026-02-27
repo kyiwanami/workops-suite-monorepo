@@ -4,16 +4,10 @@
             "path": "."
         },
         {
-            "path": "../workops/workops-suite-portal"
-        },
-        {
             "path": "../workops/workops-suite-agent"
         },
         {
             "path": "../workops/workops-suite-asset-catalog"
-        },
-        {
-            "path": "../workops/workops-suite-request-manager"
         }
     ]
 }
