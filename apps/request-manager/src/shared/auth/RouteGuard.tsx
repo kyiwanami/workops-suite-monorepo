@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { Can } from "./ability";
-import type { AppAction, AppSubject } from "./types";
+import type { AppAction, AppSubjectName } from "./types";
 
 interface RouteGuardProps {
   action: AppAction;
-  subject: AppSubject;
+  subject: AppSubjectName;
   fallbackPath: string;
   children: ReactNode;
 }

@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { Can } from "../shared/auth/ability";
-import { type AppAction, type AppSubject } from "../shared/auth/types";
+import { type AppAction, type AppSubjectName } from "../shared/auth/types";
 
 // ナビゲーションで表示する全メニューをここで一元管理する
 type PublicDrawerItem = {
@@ -19,7 +19,7 @@ type ProtectedDrawerItem = {
   label: string;
   path: string;
   action: AppAction;
-  subject: AppSubject;
+  subject: AppSubjectName;
 };
 
 type DrawerItem = PublicDrawerItem | ProtectedDrawerItem;

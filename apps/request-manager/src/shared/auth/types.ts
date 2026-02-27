@@ -45,12 +45,14 @@ export type AppAction =
   | "return"
   | "delete"
   | "manage";
-export type AppSubject =
+export type AppSubjectName =
   | "RequestPage"
   | "RequestTypePage"
   | "RequestTypeMenu"
   | "Request"
-  | "RequestType"
+  | "RequestType";
+export type AppSubject =
+  | AppSubjectName
   | Schema["Request"]["type"]
   | Schema["RequestType"]["type"];
 

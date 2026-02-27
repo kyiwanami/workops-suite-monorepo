@@ -16,7 +16,7 @@ export function useDepartments() {
     let varNextToken: string | null | undefined;
 
     do {
-      const { data, errors } = await client.queries.listDepartments({
+      const { data, errors, nextToken } = await client.models.Department.list({
         limit: 1000,
         nextToken: varNextToken ?? undefined,
       });
@@ -28,9 +28,9 @@ export function useDepartments() {
         return;
       }
 
-      const items = data?.items ?? [];
+      const items = data ?? [];
       allDepartments.push(...items);
-      varNextToken = data?.nextToken ?? undefined;
+      varNextToken = nextToken ?? undefined;
     } while (varNextToken);
 
     allDepartments.sort((left, right) => {
