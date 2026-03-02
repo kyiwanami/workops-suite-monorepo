@@ -4,6 +4,10 @@ import { CfnPermission } from "aws-cdk-lib/aws-lambda";
 import type { IFunction } from "aws-cdk-lib/aws-lambda";
 import { Construct, IConstruct } from "constructs";
 import {
+  createGatewayPolicyDefinition,
+  GatewayPolicyDefinition,
+} from "../../policy/policy-statements";
+import {
   createAssetToolSchema,
   searchAssetKnowledgeBaseToolSchema,
   updateAssetToolSchema,
@@ -33,7 +37,7 @@ export interface CreateGatewayTargetsProps {
 /**
  * AgentCore Gateway にターゲット（ツール）を登録する
  */
-export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
+export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayPolicyDefinition[] {
   const {
     scope,
     gatewayArn,
@@ -50,7 +54,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
     assetTypeCreateLambda,
   } = props;
 
-  // 1. 既存の Gateway をインポート
+  // 既存の Gateway をインポートし、上から順に tool 登録と policy 定義を揃える。
   const gateway = Gateway.fromGatewayAttributes(scope, "ImportedGateway", {
     gatewayArn,
     gatewayId,
@@ -61,6 +65,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   });
 
   const roleDefaultPolicy = gateway.role.node.tryFindChild("DefaultPolicy");
+  const policies: GatewayPolicyDefinition[] = [];
 
   // 2. create-asset ターゲット
   // IAMポリシー（アイデンティティベース）の反映待ちを避け、リソースベースポリシーを同期的に設定する (Issue #36826 回避策)
@@ -85,6 +90,12 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   });
 
   createAssetTarget.node.addDependency(...createAssetDependencies);
+  policies.push(
+    createGatewayPolicyDefinition(gatewayArn, createAssetTarget.name, [
+      "editor",
+      "manager",
+    ]),
+  );
 
   // 3. search-asset-knowledge-base ターゲット
   const kbSearchPermission = new CfnPermission(scope, "AssetKbSearchGatewayPermission", {
@@ -109,6 +120,13 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   });
 
   kbSearchTarget.node.addDependency(...kbSearchDependencies);
+  policies.push(
+    createGatewayPolicyDefinition(gatewayArn, kbSearchTarget.name, [
+      "viewer",
+      "editor",
+      "manager",
+    ]),
+  );
 
   // 4. update-asset ターゲット
   const updateAssetPermission = new CfnPermission(scope, "AssetUpdateGatewayPermission", {
@@ -132,6 +150,12 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   });
 
   updateAssetTarget.node.addDependency(...updateAssetDependencies);
+  policies.push(
+    createGatewayPolicyDefinition(gatewayArn, updateAssetTarget.name, [
+      "editor",
+      "manager",
+    ]),
+  );
 
   // 5. delete-asset ターゲット
   const deleteAssetPermission = new CfnPermission(scope, "AssetDeleteGatewayPermission", {
@@ -155,6 +179,9 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   });
 
   deleteAssetTarget.node.addDependency(...deleteAssetDependencies);
+  policies.push(
+    createGatewayPolicyDefinition(gatewayArn, deleteAssetTarget.name, ["manager"]),
+  );
 
   // 6. list-assets ターゲット
   const listAssetsPermission = new CfnPermission(scope, "AssetListGatewayPermission", {
@@ -179,6 +206,13 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   });
 
   listAssetsTarget.node.addDependency(...listAssetsDependencies);
+  policies.push(
+    createGatewayPolicyDefinition(gatewayArn, listAssetsTarget.name, [
+      "viewer",
+      "editor",
+      "manager",
+    ]),
+  );
 
   // 7. get-asset ターゲット
   const getAssetPermission = new CfnPermission(scope, "AssetGetGatewayPermission", {
@@ -202,6 +236,13 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   });
 
   getAssetTarget.node.addDependency(...getAssetDependencies);
+  policies.push(
+    createGatewayPolicyDefinition(gatewayArn, getAssetTarget.name, [
+      "viewer",
+      "editor",
+      "manager",
+    ]),
+  );
 
   // 8. list-asset-types ターゲット
   const listAssetTypesPermission = new CfnPermission(scope, "AssetTypeListGatewayPermission", {
@@ -225,6 +266,13 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   });
 
   listAssetTypesTarget.node.addDependency(...listAssetTypesDependencies);
+  policies.push(
+    createGatewayPolicyDefinition(gatewayArn, listAssetTypesTarget.name, [
+      "viewer",
+      "editor",
+      "manager",
+    ]),
+  );
 
   // 9. create-asset-type ターゲット
   const createAssetTypePermission = new CfnPermission(scope, "AssetTypeCreateGatewayPermission", {
@@ -248,4 +296,9 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   });
 
   createAssetTypeTarget.node.addDependency(...createAssetTypeDependencies);
+  policies.push(
+    createGatewayPolicyDefinition(gatewayArn, createAssetTypeTarget.name, ["manager"]),
+  );
+
+  return policies;
 }

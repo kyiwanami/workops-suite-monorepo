@@ -49,6 +49,7 @@ import { registerCallbackUrlFunction } from "./function/register-callback-url/re
 
 import { createGatewayTargets as createAssetGatewayTargets } from "./bedrock-agentcore/gateway/asset/resource";
 import { createGatewayTargets as createRequestGatewayTargets } from "./bedrock-agentcore/gateway/request/resource";
+import { createGatewayPolicyResources } from "./bedrock-agentcore/policy/resource";
 
 // ブランチ名取得
 // - Amplifyビルド時: AWS_BRANCH環境変数から取得
@@ -363,8 +364,10 @@ backend.requestKbSearch.addEnvironment(
 // ==================================================
 const assetGatewayTargetsStack = backend.createStack("AssetGatewayTargetsStack");
 const requestGatewayTargetsStack = backend.createStack("RequestGatewayTargetsStack");
+const assetGatewayPolicyStack = backend.createStack("AssetGatewayPolicyStack");
+const requestGatewayPolicyStack = backend.createStack("RequestGatewayPolicyStack");
 
-createAssetGatewayTargets({
+const assetPolicies = createAssetGatewayTargets({
   scope: assetGatewayTargetsStack,
   gatewayArn: params.GATEWAY_ARN,
   gatewayId: params.GATEWAY_ID,
@@ -380,7 +383,7 @@ createAssetGatewayTargets({
   assetTypeCreateLambda: backend.assetTypeToolCreate.resources.lambda,
 });
 
-createRequestGatewayTargets({
+const requestPolicies = createRequestGatewayTargets({
   scope: requestGatewayTargetsStack,
   gatewayArn: params.GATEWAY_ARN,
   gatewayId: params.GATEWAY_ID,
@@ -393,6 +396,31 @@ createRequestGatewayTargets({
   requestUpdateLambda: backend.requestToolUpdate.resources.lambda,
   requestTypeListLambda: backend.requestTypeToolList.resources.lambda,
 });
+
+createGatewayPolicyResources({
+  scope: assetGatewayPolicyStack,
+  branchName,
+  gatewayId: params.GATEWAY_ID,
+  gatewayArn: params.GATEWAY_ARN,
+  gatewayRoleArn: params.GATEWAY_ROLE_ARN,
+  policyEngineId: params.POLICY_ENGINE_ID,
+  policyEngineArn: params.POLICY_ENGINE_ARN,
+  policies: assetPolicies,
+});
+
+createGatewayPolicyResources({
+  scope: requestGatewayPolicyStack,
+  branchName,
+  gatewayId: params.GATEWAY_ID,
+  gatewayArn: params.GATEWAY_ARN,
+  gatewayRoleArn: params.GATEWAY_ROLE_ARN,
+  policyEngineId: params.POLICY_ENGINE_ID,
+  policyEngineArn: params.POLICY_ENGINE_ARN,
+  policies: requestPolicies,
+});
+
+assetGatewayPolicyStack.addDependency(assetGatewayTargetsStack);
+requestGatewayPolicyStack.addDependency(requestGatewayTargetsStack);
 
 // ==================================================
 // カスタム出力: AgentCore Runtime ARN

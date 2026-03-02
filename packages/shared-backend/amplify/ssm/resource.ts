@@ -73,6 +73,8 @@ const PARAMETERS = [
   "GATEWAY_ARN",
   "GATEWAY_NAME",
   "GATEWAY_ROLE_ARN",
+  "POLICY_ENGINE_ID",
+  "POLICY_ENGINE_ARN",
   "RUNTIME_ARN",
 ] as const;
 
@@ -97,6 +99,8 @@ export const createParameterStore = async (
     GATEWAY_ARN: "",
     GATEWAY_NAME: "",
     GATEWAY_ROLE_ARN: "",
+    POLICY_ENGINE_ID: "",
+    POLICY_ENGINE_ARN: "",
     RUNTIME_ARN: "",
   };
 
