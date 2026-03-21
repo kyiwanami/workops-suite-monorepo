@@ -21,8 +21,7 @@
 ```
 
 **特徴**:
-- 各アプリは AWS Systems Manager Parameter Store 経由で User Pool ID を取得
-- Parameter Store パス: `/amplify/workops-suite-{branch}/USER_POOL_ID`
+- Asset Catalog・Request Manager・AgentCore はすべて同一 Amplify デプロイ（shared-backend）内で構築されるため、同一の Cognito User Pool を CDK トークンで直接参照します
 
 ---
 
@@ -252,52 +251,9 @@ type Todo {
 
 ---
 
-## 6. Parameter Store による設定配布
+## 6. 技術的チャレンジと解決策
 
-### 構造
-
-```
-/amplify/
-├── workops-suite-sandbox/
-│   ├── USER_POOL_ID           # ex. ap-northeast-1_K9izqSNcy
-│   ├── IDENTITY_POOL_ID       # ex. ap-northeast-1:314e66b4-9db6-...
-│   ├── AUTH_ROLE_ARN
-│   ├── UNAUTH_ROLE_ARN
-│   └── USER_POOL_CLIENT_ID
-└── workops-suite-main/
-    └── (同様)
-```
-
-### Asset Catalog / Request Manager での利用例
-
-```typescript
-// amplify/auth/resource.ts
-import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
-
-const ssmClient = new SSMClient({ region: "ap-northeast-1" });
-const pathPrefix = process.env.AWS_BRANCH || "sandbox";
-
-const userPoolIdParam = await ssmClient.send(
-  new GetParameterCommand({
-    Name: `/amplify/workops-suite-${pathPrefix}/USER_POOL_ID`,
-  })
-);
-
-const userPoolId = userPoolIdParam.Parameter!.Value!;
-
-// Cognito を外部リソースとして参照
-export const userPool = cognito.UserPool.fromUserPoolId(
-  scope,
-  "SharedUserPool",
-  userPoolId
-);
-```
-
----
-
-## 7. 技術的チャレンジと解決策
-
-### 7.1 Feature-Based 設計による保守性
+### 6.1 Feature-Based 設計による保守性
 
 **課題**: 機能増加に伴うコードベース肥大化
 
@@ -315,7 +271,7 @@ features/user-management/    # 各機能が独立
 
 ---
 
-### 7.2 型安全性の徹底
+### 6.2 型安全性の徹底
 
 **課題**: TypeScript の any / unknown による型穴
 
@@ -339,7 +295,7 @@ const createUser = async (data: z.infer<typeof userSchema>) => {
 
 ---
 
-### 7.3 AppSync エラーハンドリング
+### 6.3 AppSync エラーハンドリング
 
 **課題**: GraphQL エラーをキャッチ忘れ
 
@@ -359,7 +315,7 @@ const users = result.data.listUsers;
 
 ---
 
-### 7.4 DynamoDB Streams による部署グループ同期
+### 6.4 DynamoDB Streams による部署グループ同期
 
 **課題**: 部署追加時に Cognito グループを手動で作成
 
@@ -395,7 +351,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
 
 ---
 
-## 8. セキュリティ設計
+## 7. セキュリティ設計
 
 ### 多層防御
 
@@ -416,6 +372,6 @@ Portal は以下の特徴を持つエンタープライズ向け SSO 基盤で�
 
 ✅ **拡張性**: 新しい業務アプリが簡単に統合可能
 ✅ **セキュリティ**: 多層防御・カスタムクレーム・RBAC
-✅ **運用効率**: ブランチ環境自動分離・Parameter Store 自動配布
+✅ **運用効率**: ブランチ環境自動分離・Amplify 一括デプロイ
 ✅ **保守性**: Feature-Based 設計・型安全性の徹底
 ✅ **スケーラビリティ**: AWS ネイティブ サービス活用

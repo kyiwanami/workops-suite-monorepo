@@ -6,13 +6,13 @@ import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Provider } from "aws-cdk-lib/custom-resources";
 import { auth, setupAuth } from "./auth/resource";
 import { data } from "./data/resource";
-import { createParameterStore } from "./ssm/resource";
-import { storage as assetStorage } from "./storage/asset/resource";
-import { storage as requestStorage } from "./storage/request/resource";
+import { AgentCoreInfrastructure } from "./bedrock-agentcore/constructs/agent-infra";
+import { AgentCoreStack } from "./bedrock-agentcore/runtime-stack";
+import { PolicyEngine } from "./bedrock-agentcore/constructs/policy-engine";
+import { WebSearchApiKeyProvider } from "./bedrock-agentcore/constructs/web-search-api-key-provider";
+import { assetStorage } from "./storage/resource";
 import { VectorStoreResources as AssetVectorStoreResources } from "./s3vectors/asset/resource";
-import { VectorStoreResources as RequestVectorStoreResources } from "./s3vectors/request/resource";
 import { BedrockResources as AssetBedrockResources } from "./bedrock/asset/resource";
-import { BedrockResources as RequestBedrockResources } from "./bedrock/request/resource";
 
 import { listUsersFunction } from "./function/user-operations/list-users/resource";
 import { getUserFunction } from "./function/user-operations/get-user/resource";
@@ -48,10 +48,14 @@ import { requestToolList } from "./function/tools/request-tool-list/resource";
 import { requestToolUpdate } from "./function/tools/request-tool-update/resource";
 import { requestTypeToolList } from "./function/tools/request-type-tool-list/resource";
 import { syncRequest } from "./function/sync-request/resource";
+import { webSearchApiKeyProviderFunction } from "./function/web-search-api-key-provider/resource";
 
 import { createGatewayTargets as createAssetGatewayTargets } from "./bedrock-agentcore/gateway/asset/resource";
 import { createGatewayTargets as createRequestGatewayTargets } from "./bedrock-agentcore/gateway/request/resource";
-import { createGatewayPolicyResources } from "./bedrock-agentcore/policy/resource";
+import {
+  createGatewayPolicyResources,
+  createPolicyEngineAttachmentResource,
+} from "./bedrock-agentcore/policy/resource";
 
 // ブランチ名取得
 // - Amplifyビルド時: AWS_BRANCH環境変数から取得
@@ -61,14 +65,10 @@ const branchName = process.env.AWS_BRANCH || "sandbox";
 // パスプレフィックス生成 (workops-suite-{branchName})
 const pathPrefix = `workops-suite-${branchName}`;
 
-// SSMからAgentCore設定を取得
-const params = await createParameterStore(pathPrefix);
-
 const backend = defineBackend({
   auth,
   data,
   assetStorage,
-  requestStorage,
   listUsersFunction,
   getUserFunction,
   createUserFunction,
@@ -100,10 +100,56 @@ const backend = defineBackend({
   requestToolUpdate,
   requestTypeToolList,
   syncRequest,
+  webSearchApiKeyProviderFunction,
 });
 
 // Backend型をエクスポート
 export type BackendType = typeof backend;
+
+// ==================================================
+// AgentCore Infrastructure（Gateway, Memory, Browser, Runtime, PolicyEngine）
+// ==================================================
+const userPoolIdForAgentCore = backend.auth.resources.userPool.userPoolId;
+const userPoolClientIdForAgentCore = backend.auth.resources.userPoolClient.userPoolClientId;
+
+const agentCoreInfraStack = backend.createStack("AgentCoreInfraStack");
+
+const policyEngine = new PolicyEngine(agentCoreInfraStack, "PolicyEngine", {
+  projectPathPrefix: pathPrefix,
+});
+
+const agentCoreInfrastructure = new AgentCoreInfrastructure(
+  agentCoreInfraStack,
+  "Infrastructure",
+  {
+    projectPathPrefix: pathPrefix,
+    userPoolId: userPoolIdForAgentCore,
+    userPoolClientId: userPoolClientIdForAgentCore,
+    policyEngineArn: policyEngine.policyEngineArn,
+  },
+);
+
+new WebSearchApiKeyProvider(
+  agentCoreInfraStack,
+  "WebSearchApiKeyProvider",
+  {
+    projectPathPrefix: pathPrefix,
+    apiKeyValue: "DUMMY", // Users update via AWS Console
+    onEventHandler: backend.webSearchApiKeyProviderFunction.resources.lambda,
+  },
+);
+
+const agentCoreRuntimeStack = backend.createStack("AgentCoreRuntimeStack");
+const agentCoreRuntime = new AgentCoreStack(agentCoreRuntimeStack, "AgentCore", {
+  projectPathPrefix: pathPrefix,
+  region: backend.stack.region,
+  userPoolId: userPoolIdForAgentCore,
+  userPoolClientId: userPoolClientIdForAgentCore,
+  gateway: agentCoreInfrastructure.gateway,
+  memory: agentCoreInfrastructure.memory,
+  browser: agentCoreInfrastructure.browser,
+});
+agentCoreRuntimeStack.addDependency(agentCoreInfraStack);
 
 // 各関数に環境変数を設定
 const userPoolId = backend.auth.resources.userPool.userPoolId;
@@ -236,12 +282,7 @@ const assetVectorStoreResources = new AssetVectorStoreResources(
   "AssetVectorStoreResources",
 );
 
-const requestVectorStoreStack = backend.createStack("RequestVectorStoreStack");
-const requestVectorStoreResources = new RequestVectorStoreResources(
-  requestVectorStoreStack,
-  "RequestVectorStoreResources",
-);
-
+// Asset / Request 共通の Bedrock KB スタック（1バケット・1VectorStore・1KB・2DS）
 const assetBedrockStack = backend.createStack("AssetBedrockStack");
 const assetBedrockResources = new AssetBedrockResources(
   assetBedrockStack,
@@ -250,20 +291,6 @@ const assetBedrockResources = new AssetBedrockResources(
     dataSourceBucketArn: backend.assetStorage.resources.bucket.bucketArn,
     vectorStoreBucketArn: assetVectorStoreResources.vectorStoreBucketArn,
     vectorStoreIndexArn: assetVectorStoreResources.vectorIndexArn,
-    region: backend.stack.region,
-    account: backend.stack.account,
-    branchName,
-  },
-);
-
-const requestBedrockStack = backend.createStack("RequestBedrockStack");
-const requestBedrockResources = new RequestBedrockResources(
-  requestBedrockStack,
-  "RequestBedrockResources",
-  {
-    dataSourceBucketArn: backend.requestStorage.resources.bucket.bucketArn,
-    vectorStoreBucketArn: requestVectorStoreResources.vectorStoreBucketArn,
-    vectorStoreIndexArn: requestVectorStoreResources.vectorIndexArn,
     region: backend.stack.region,
     account: backend.stack.account,
     branchName,
@@ -291,7 +318,8 @@ backend.syncRequest.resources.lambda.addEventSource(
 );
 
 backend.assetStorage.resources.bucket.grantReadWrite(backend.syncAsset.resources.lambda);
-backend.requestStorage.resources.bucket.grantReadWrite(
+// syncRequest も統合バケットへの読み書き権限を付与
+backend.assetStorage.resources.bucket.grantReadWrite(
   backend.syncRequest.resources.lambda,
 );
 
@@ -316,42 +344,39 @@ backend.syncAsset.addEnvironment(
   "KNOWLEDGE_BASE_ID",
   assetBedrockResources.knowledgeBaseId,
 );
-backend.syncAsset.addEnvironment("DATA_SOURCE_ID", assetBedrockResources.dataSourceId);
+backend.syncAsset.addEnvironment("DATA_SOURCE_ID", assetBedrockResources.assetDataSourceId);
 
-// sync Lambda環境変数設定（Request）
+// sync Lambda環境変数設定（Request）— 統合バケット・統合KB・Request専用DS
 backend.syncRequest.addEnvironment(
   "DATA_SOURCE_BUCKET_NAME",
-  backend.requestStorage.resources.bucket.bucketName,
+  backend.assetStorage.resources.bucket.bucketName,
 );
 backend.syncRequest.addEnvironment(
   "KNOWLEDGE_BASE_ID",
-  requestBedrockResources.knowledgeBaseId,
+  assetBedrockResources.knowledgeBaseId,
 );
 backend.syncRequest.addEnvironment(
   "DATA_SOURCE_ID",
-  requestBedrockResources.dataSourceId,
+  assetBedrockResources.requestDataSourceId,
 );
 
-// kb-search Lambda環境変数設定
+// kb-search Lambda環境変数設定（両者とも統合KB）
 backend.assetKbSearch.addEnvironment(
   "KNOWLEDGE_BASE_ID",
   assetBedrockResources.knowledgeBaseId,
 );
 backend.requestKbSearch.addEnvironment(
   "KNOWLEDGE_BASE_ID",
-  requestBedrockResources.knowledgeBaseId,
+  assetBedrockResources.knowledgeBaseId,
 );
 
-// kb-search LambdaにRetrieve権限を付与
-[
-  { fn: backend.assetKbSearch, kbId: assetBedrockResources.knowledgeBaseId },
-  { fn: backend.requestKbSearch, kbId: requestBedrockResources.knowledgeBaseId },
-].forEach(({ fn, kbId }) => {
+// kb-search LambdaにRetrieve権限を付与（統合KB）
+[backend.assetKbSearch, backend.requestKbSearch].forEach((fn) => {
   fn.resources.lambda.addToRolePolicy(
     new PolicyStatement({
       actions: ["bedrock:Retrieve"],
       resources: [
-        `arn:aws:bedrock:${backend.stack.region}:${backend.stack.account}:knowledge-base/${kbId}`,
+        `arn:aws:bedrock:${backend.stack.region}:${backend.stack.account}:knowledge-base/${assetBedrockResources.knowledgeBaseId}`,
       ],
     }),
   );
@@ -362,15 +387,16 @@ backend.requestKbSearch.addEnvironment(
 // ==================================================
 const assetGatewayTargetsStack = backend.createStack("AssetGatewayTargetsStack");
 const requestGatewayTargetsStack = backend.createStack("RequestGatewayTargetsStack");
+const attachPolicyEngineStack = backend.createStack("AttachPolicyEngineStack");
 const assetGatewayPolicyStack = backend.createStack("AssetGatewayPolicyStack");
 const requestGatewayPolicyStack = backend.createStack("RequestGatewayPolicyStack");
 
 const assetPolicies = createAssetGatewayTargets({
   scope: assetGatewayTargetsStack,
-  gatewayArn: params.GATEWAY_ARN,
-  gatewayId: params.GATEWAY_ID,
-  gatewayName: params.GATEWAY_NAME,
-  gatewayRoleArn: params.GATEWAY_ROLE_ARN,
+  gatewayArn: agentCoreInfrastructure.gateway.gatewayArn,
+  gatewayId: agentCoreInfrastructure.gateway.gatewayId,
+  gatewayName: agentCoreInfrastructure.gatewayName,
+  gatewayRoleArn: agentCoreInfrastructure.gateway.role.roleArn,
   assetCreateLambda: backend.assetToolCreate.resources.lambda,
   assetKbSearchLambda: backend.assetKbSearch.resources.lambda,
   assetUpdateLambda: backend.assetToolUpdate.resources.lambda,
@@ -383,10 +409,10 @@ const assetPolicies = createAssetGatewayTargets({
 
 const requestPolicies = createRequestGatewayTargets({
   scope: requestGatewayTargetsStack,
-  gatewayArn: params.GATEWAY_ARN,
-  gatewayId: params.GATEWAY_ID,
-  gatewayName: params.GATEWAY_NAME,
-  gatewayRoleArn: params.GATEWAY_ROLE_ARN,
+  gatewayArn: agentCoreInfrastructure.gateway.gatewayArn,
+  gatewayId: agentCoreInfrastructure.gateway.gatewayId,
+  gatewayName: agentCoreInfrastructure.gatewayName,
+  gatewayRoleArn: agentCoreInfrastructure.gateway.role.roleArn,
   requestCreateLambda: backend.requestToolCreate.resources.lambda,
   requestKbSearchLambda: backend.requestKbSearch.resources.lambda,
   requestGetLambda: backend.requestToolGet.resources.lambda,
@@ -395,38 +421,43 @@ const requestPolicies = createRequestGatewayTargets({
   requestTypeListLambda: backend.requestTypeToolList.resources.lambda,
 });
 
+const policyEngineAttachmentResource = createPolicyEngineAttachmentResource({
+  scope: attachPolicyEngineStack,
+  branchName,
+  gatewayId: agentCoreInfrastructure.gateway.gatewayId,
+  gatewayRoleArn: agentCoreInfrastructure.gateway.role.roleArn,
+  policyEngineArn: policyEngine.policyEngineArn,
+});
+
 createGatewayPolicyResources({
   scope: assetGatewayPolicyStack,
   branchName,
-  gatewayId: params.GATEWAY_ID,
-  gatewayArn: params.GATEWAY_ARN,
-  gatewayRoleArn: params.GATEWAY_ROLE_ARN,
-  policyEngineId: params.POLICY_ENGINE_ID,
-  policyEngineArn: params.POLICY_ENGINE_ARN,
+  gatewayArn: agentCoreInfrastructure.gateway.gatewayArn,
+  policyEngineId: policyEngine.policyEngineId,
   policies: assetPolicies,
+  attachmentDependency: policyEngineAttachmentResource,
 });
 
 createGatewayPolicyResources({
   scope: requestGatewayPolicyStack,
   branchName,
-  gatewayId: params.GATEWAY_ID,
-  gatewayArn: params.GATEWAY_ARN,
-  gatewayRoleArn: params.GATEWAY_ROLE_ARN,
-  policyEngineId: params.POLICY_ENGINE_ID,
-  policyEngineArn: params.POLICY_ENGINE_ARN,
+  gatewayArn: agentCoreInfrastructure.gateway.gatewayArn,
+  policyEngineId: policyEngine.policyEngineId,
   policies: requestPolicies,
+  attachmentDependency: policyEngineAttachmentResource,
 });
 
-assetGatewayPolicyStack.addDependency(assetGatewayTargetsStack);
-requestGatewayPolicyStack.addDependency(requestGatewayTargetsStack);
+attachPolicyEngineStack.addDependency(assetGatewayTargetsStack);
+attachPolicyEngineStack.addDependency(requestGatewayTargetsStack);
+assetGatewayPolicyStack.addDependency(attachPolicyEngineStack);
+requestGatewayPolicyStack.addDependency(attachPolicyEngineStack);
 
 // ==================================================
 // カスタム出力: AgentCore Runtime ARN
 // ==================================================
-// Runtime ARNはSSMから取得した値を出力
 backend.addOutput({
   custom: {
-    agentCoreRuntimeArn: params.RUNTIME_ARN,
+    agentCoreRuntimeArn: agentCoreRuntime.runtimeArn,
   },
 });
 

@@ -5,38 +5,35 @@ import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Provider } from "aws-cdk-lib/custom-resources";
-import { Construct } from "constructs";
+import { Construct, IConstruct } from "constructs";
 import type { GatewayPolicyDefinition } from "./policy-statements";
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDirPath = path.dirname(currentFilePath);
 
-export interface CreateGatewayPolicyResourcesProps {
+export interface CreatePolicyEngineAttachmentResourceProps {
   scope: Construct;
   branchName: string;
   gatewayId: string;
-  gatewayArn: string;
   gatewayRoleArn: string;
   policyEngineArn: string;
-  policyEngineId: string;
-  policies: GatewayPolicyDefinition[];
 }
 
-export function createGatewayPolicyResources(
-  props: CreateGatewayPolicyResourcesProps,
-): void {
-  const {
-    scope,
-    branchName,
-    gatewayId,
-    gatewayArn,
-    gatewayRoleArn,
-    policyEngineArn,
-    policyEngineId,
-    policies,
-  } = props;
+export interface CreateGatewayPolicyResourcesProps {
+  scope: Construct;
+  branchName: string;
+  gatewayArn: string;
+  policyEngineId: string;
+  policies: GatewayPolicyDefinition[];
+  attachmentDependency: IConstruct;
+}
 
-  // SDK 差異を避けるため、attach/update を custom resource handler に閉じ込める
+export function createPolicyEngineAttachmentResource(
+  props: CreatePolicyEngineAttachmentResourceProps,
+): CustomResource {
+  const { scope, branchName, gatewayId, gatewayRoleArn, policyEngineArn } = props;
+
+  // Gateway への policy engine 関連付けは専用 stack で 1 回だけ実行する。
   const attachPolicyEngineLambda = new NodejsFunction(
     scope,
     "AttachPolicyEngineCustomResourceHandler",
@@ -76,6 +73,32 @@ export function createGatewayPolicyResources(
     }),
   );
 
+  const attachProvider = new Provider(scope, "AttachPolicyEngineProvider", {
+    onEventHandler: attachPolicyEngineLambda,
+  });
+
+  return new CustomResource(scope, "AttachPolicyEngineResource", {
+    serviceToken: attachProvider.serviceToken,
+    properties: {
+      gatewayId,
+      policyEngineArn,
+      mode: "ENFORCE",
+    },
+  });
+}
+
+export function createGatewayPolicyResources(
+  props: CreateGatewayPolicyResourcesProps,
+): void {
+  const {
+    scope,
+    branchName,
+    gatewayArn,
+    policyEngineId,
+    policies,
+    attachmentDependency,
+  } = props;
+
   const upsertPolicyLambda = new NodejsFunction(
     scope,
     "UpsertPolicyCustomResourceHandler",
@@ -114,19 +137,6 @@ export function createGatewayPolicyResources(
     }),
   );
 
-  const attachProvider = new Provider(scope, "AttachPolicyEngineProvider", {
-    onEventHandler: attachPolicyEngineLambda,
-  });
-
-  const attachResource = new CustomResource(scope, "AttachPolicyEngineResource", {
-    serviceToken: attachProvider.serviceToken,
-    properties: {
-      gatewayId,
-      policyEngineArn,
-      mode: "ENFORCE",
-    },
-  });
-
   const policyProvider = new Provider(scope, "UpsertPolicyProvider", {
     onEventHandler: upsertPolicyLambda,
   });
@@ -152,6 +162,6 @@ export function createGatewayPolicyResources(
     );
 
     // Gateway のスキーマ検証があるため、attach 後に Cedar policy を登録する
-    policyResource.node.addDependency(attachResource);
+    policyResource.node.addDependency(attachmentDependency);
   });
 }

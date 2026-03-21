@@ -97,7 +97,6 @@ export const handler = async (
     new UpdatePolicyCommand({
       policyEngineId,
       policyId: existingPolicyId,
-      description: policyDescription,
       validationMode: "FAIL_ON_ANY_FINDINGS",
       definition: {
         cedar: {

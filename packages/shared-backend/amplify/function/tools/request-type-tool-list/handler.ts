@@ -14,7 +14,7 @@ export const handler = async () => {
   // 申請作成に利用する有効な種別のみ返却する。
   const filter = {
     isActive: { eq: true },
-  } satisfies Parameters<typeof client.models.RequestType.list>[0]["filter"];
+  };
 
   const { data, errors } = await client.models.RequestType.list({
     filter,

@@ -15,7 +15,15 @@ workops-suite-monorepo/
 │       ├── amplify/               # バックエンド定義（CDK/TypeScript）
 │       │   ├── auth/              # 認証設定（Cognito）
 │       │   ├── data/              # データモデル定義
-│       │   └── function/          # Lambda関数
+│       │   ├── function/          # Lambda関数
+│       │   ├── bedrock/           # Bedrock Knowledge Base
+│       │   ├── storage/           # S3バケット
+│       │   ├── s3vectors/         # S3 Vector Store
+│       │   └── bedrock-agentcore/ # AgentCore（Gateway/Memory/Browser/Runtime）
+│       │       ├── constructs/    # CDK Constructs
+│       │       ├── gateway/       # Gatewayツール登録
+│       │       ├── policy/        # Cedar Policy
+│       │       └── runtime/       # Python AgentCore実装
 │       └── amplify_outputs.json   # ビルド出力（バックエンド設定）
 ├── package.json                   # Workspace定義
 └── README.md                      # このファイル
@@ -100,7 +108,7 @@ packages/shared-backend/amplify_outputs.json
 
 - Asset Catalog・Request Manager の Chat 機能は AWS Bedrock AgentCore Runtime を呼び出します
 - Runtime ARN は `amplify_outputs.json` の `custom.agentCoreRuntimeArn` から取得されます
-- 現在はダミー値が設定されており、本番環境では実際の ARN に置き換える必要があります
+- AgentCore（Gateway / Memory / Browser / Runtime）は shared-backend の Amplify デプロイで自動プロビジョニングされます
 
 ## 🛠️ 開発ワークフロー
 

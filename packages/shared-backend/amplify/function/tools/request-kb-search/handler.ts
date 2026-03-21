@@ -19,6 +19,13 @@ export const handler = async (event: { query: string }) => {
     retrievalConfiguration: {
       vectorSearchConfiguration: {
         numberOfResults: 5,
+        // 統合KB内でRequestドキュメントのみに絞り込む
+        filter: {
+          equals: {
+            key: "documentType",
+            value: { stringValue: "request" },
+          },
+        },
       },
     },
   });

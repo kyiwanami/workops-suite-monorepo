@@ -6,16 +6,17 @@
     "sandbox": "ampx sandbox"
   },
   "dependencies": {
-    "@aws-cdk/aws-bedrock-agentcore-alpha": "^2.238.0-alpha.0",
+    "@aws-cdk/aws-bedrock-agentcore-alpha": "^2.244.0-alpha.0",
     "@aws-sdk/client-bedrock-agent": "^3.958.0",
     "@aws-sdk/client-bedrock-agent-runtime": "^3.958.0",
-    "@aws-sdk/client-bedrock-agentcore-control": "^3.980.0",
+    "@aws-sdk/client-bedrock-agentcore-control": "^3.1014.0",
     "@aws-sdk/client-s3": "^3.958.0",
-    "@aws-sdk/client-ssm": "^3.966.0",
+    "agentcore-experimental-constructs": "^0.1.9",
     "aws-amplify": "^6.15.9"
   },
   "devDependencies": {
     "@aws-amplify/backend": "^1.19.0",
+    "@dotenvx/dotenvx": "^1.57.0",
     "@aws-amplify/backend-cli": "^1.8.1",
     "@aws-sdk/client-cognito-identity-provider": "^3.962.0",
     "@types/aws-lambda": "^8.10.159",

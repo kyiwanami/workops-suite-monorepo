@@ -15,7 +15,10 @@ interface BedrockResourcesProps extends cdk.StackProps {
 
 export class BedrockResources extends Construct {
   public readonly knowledgeBaseId: string;
-  public readonly dataSourceId: string;
+  // Asset ドキュメント専用データソース ID (kb-docs/asset/ prefix)
+  public readonly assetDataSourceId: string;
+  // Request ドキュメント専用データソース ID (kb-docs/request/ prefix)
+  public readonly requestDataSourceId: string;
 
   constructor(scope: Construct, id: string, props: BedrockResourcesProps) {
     super(scope, id);
@@ -92,21 +95,36 @@ export class BedrockResources extends Construct {
     // IAMロールとポリシーが完全に作成されるまでKB作成を待機
     knowledgeBase.node.addDependency(bedrockExecutionRole);
 
-    // 4. データソースの作成
-    const dataSource = new bedrock.CfnDataSource(this, "AssetDataSource", {
+    // 4. データソースの作成（Asset / Request でパスを分離）
+    // Asset ドキュメント: kb-docs/asset/ 配下
+    const assetDataSource = new bedrock.CfnDataSource(this, "AssetDataSource", {
       name: `asset-ds-${props.branchName}`,
       knowledgeBaseId: knowledgeBase.ref,
       dataSourceConfiguration: {
         type: "S3",
         s3Configuration: {
           bucketArn: dataSourceBucket.bucketArn,
-          inclusionPrefixes: ["kb-docs/"],
+          inclusionPrefixes: ["kb-docs/asset/"],
+        },
+      },
+    });
+
+    // Request ドキュメント: kb-docs/request/ 配下
+    const requestDataSource = new bedrock.CfnDataSource(this, "RequestDataSource", {
+      name: `request-ds-${props.branchName}`,
+      knowledgeBaseId: knowledgeBase.ref,
+      dataSourceConfiguration: {
+        type: "S3",
+        s3Configuration: {
+          bucketArn: dataSourceBucket.bucketArn,
+          inclusionPrefixes: ["kb-docs/request/"],
         },
       },
     });
 
     // IDを公開
     this.knowledgeBaseId = knowledgeBase.attrKnowledgeBaseId;
-    this.dataSourceId = dataSource.attrDataSourceId;
+    this.assetDataSourceId = assetDataSource.attrDataSourceId;
+    this.requestDataSourceId = requestDataSource.attrDataSourceId;
   }
 }

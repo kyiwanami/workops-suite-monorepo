@@ -83,7 +83,7 @@ export const handler: DynamoDBStreamHandler = async (event) => {
       await s3Client.send(
         new PutObjectCommand({
           Bucket: bucketName,
-          Key: `kb-docs/request-${requestId}.txt`,
+          Key: `kb-docs/request/request-${requestId}.txt`,
           Body: document,
           ContentType: "text/plain",
         }),
@@ -92,7 +92,7 @@ export const handler: DynamoDBStreamHandler = async (event) => {
       await s3Client.send(
         new PutObjectCommand({
           Bucket: bucketName,
-          Key: `kb-docs/request-${requestId}.txt.metadata.json`,
+          Key: `kb-docs/request/request-${requestId}.txt.metadata.json`,
           Body: JSON.stringify(metadata),
           ContentType: "application/json",
         }),
@@ -103,14 +103,14 @@ export const handler: DynamoDBStreamHandler = async (event) => {
       await s3Client.send(
         new DeleteObjectCommand({
           Bucket: bucketName,
-          Key: `kb-docs/request-${requestId}.txt`,
+          Key: `kb-docs/request/request-${requestId}.txt`,
         }),
       );
 
       await s3Client.send(
         new DeleteObjectCommand({
           Bucket: bucketName,
-          Key: `kb-docs/request-${requestId}.txt.metadata.json`,
+          Key: `kb-docs/request/request-${requestId}.txt.metadata.json`,
         }),
       );
     }

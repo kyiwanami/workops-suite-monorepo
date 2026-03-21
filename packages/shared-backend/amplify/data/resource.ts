@@ -13,6 +13,18 @@ import { removeUserFromGroupFunction } from "../function/group-operations/remove
 import { listGroupsForUserFunction } from "../function/group-operations/list-groups-for-user/resource";
 import { listUsersInGroupFunction } from "../function/group-operations/list-users-in-group/resource";
 import { preTokenGenerationFunction } from "../function/pre-token-generation/resource";
+import { assetToolCreate } from "../function/tools/asset-tool-create/resource";
+import { assetToolDelete } from "../function/tools/asset-tool-delete/resource";
+import { assetToolGet } from "../function/tools/asset-tool-get/resource";
+import { assetToolList } from "../function/tools/asset-tool-list/resource";
+import { assetToolUpdate } from "../function/tools/asset-tool-update/resource";
+import { assetTypeToolCreate } from "../function/tools/asset-type-tool-create/resource";
+import { assetTypeToolList } from "../function/tools/asset-type-tool-list/resource";
+import { requestToolCreate } from "../function/tools/request-tool-create/resource";
+import { requestToolGet } from "../function/tools/request-tool-get/resource";
+import { requestToolList } from "../function/tools/request-tool-list/resource";
+import { requestToolUpdate } from "../function/tools/request-tool-update/resource";
+import { requestTypeToolList } from "../function/tools/request-type-tool-list/resource";
 
 const schema = a
   .schema({
@@ -345,6 +357,19 @@ const schema = a
   .authorization((allow) => [
     allow.authenticated(),
     allow.resource(preTokenGenerationFunction).to(["query"]),
+    // AgentCore ツール Lambda に Data アクセス権を付与（AMPLIFY_DATA_DEFAULT_NAME 注入）
+    allow.resource(assetToolCreate),
+    allow.resource(assetToolDelete),
+    allow.resource(assetToolGet),
+    allow.resource(assetToolList),
+    allow.resource(assetToolUpdate),
+    allow.resource(assetTypeToolCreate),
+    allow.resource(assetTypeToolList),
+    allow.resource(requestToolCreate),
+    allow.resource(requestToolGet),
+    allow.resource(requestToolList),
+    allow.resource(requestToolUpdate),
+    allow.resource(requestTypeToolList),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;
