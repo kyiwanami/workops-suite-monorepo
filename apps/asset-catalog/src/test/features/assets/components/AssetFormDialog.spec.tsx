@@ -123,11 +123,11 @@ describe("AssetFormDialog", () => {
 
     expect(screen.getByText("資産登録")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("名称"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "名称" }), {
       target: { value: "ノートPC" },
     });
 
-    fireEvent.mouseDown(screen.getByLabelText("資産種別"));
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: /資産種別/ }));
     fireEvent.click(await screen.findByRole("option", { name: "ノートPC" }));
 
     fireEvent.click(screen.getByRole("button", { name: "登録" }));

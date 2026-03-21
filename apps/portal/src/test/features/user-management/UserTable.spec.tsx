@@ -1,8 +1,8 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { renderWithProviders } from "../../../renderWithProviders";
-import { UserTable } from "../../../../features/user-management/components/UserTable";
-import type { CognitoUserType } from "../../../../features/user-management/types";
+import { renderWithProviders } from "../../renderWithProviders";
+import { UserTable } from "../../../features/user-management/components/UserTable";
+import type { CognitoUserType } from "../../../features/user-management/types";
 
 const sampleUser: CognitoUserType = {
   username: "taro",

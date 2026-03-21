@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../renderWithProviders";
 import { UserDetailModal } from "../../../features/user-management/components/UserDetailModal";
@@ -92,13 +92,20 @@ describe("UserDetailModal", () => {
     );
 
     await waitFor(() => {
-      expect(hookValue.fetchGroupsForUser).toHaveBeenCalledWith("alice");
-      expect(hookValue.fetchAllGroups).toHaveBeenCalled();
+    expect(hookValue.fetchGroupsForUser).toHaveBeenCalledWith("alice");
+    expect(hookValue.fetchAllGroups).toHaveBeenCalled();
     });
 
     expect(screen.getByText("ユーザー詳細")).toBeInTheDocument();
     expect(screen.getByText("alice")).toBeInTheDocument();
-    expect(await screen.findByText("DEPT01_viewer")).toBeInTheDocument();
+    const currentGroupLabel = screen.getByText("現在のグループ:");
+    const currentGroupSection = currentGroupLabel.parentElement?.parentElement;
+    expect(currentGroupSection).not.toBeNull();
+    if (currentGroupSection) {
+      expect(
+        within(currentGroupSection).getByText("DEPT01_viewer")
+      ).toBeInTheDocument();
+    }
   });
 
   it("無効化確認から更新処理を呼び出す", async () => {

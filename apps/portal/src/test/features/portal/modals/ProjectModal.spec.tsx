@@ -40,19 +40,19 @@ describe("ProjectModal", () => {
       <ProjectModal open onClose={onClose} />
     );
 
-    fireEvent.change(screen.getByLabelText("プロジェクト名"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "プロジェクト名" }), {
       target: { value: "業務ポータル" },
     });
-    fireEvent.change(screen.getByLabelText("プロジェクトID"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "プロジェクトID" }), {
       target: { value: "portal" },
     });
-    fireEvent.change(screen.getByLabelText("ドメインURL"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "ドメインURL" }), {
       target: { value: "https://portal.example.com" },
     });
-    fireEvent.change(screen.getByLabelText("アイコン名"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "アイコン名" }), {
       target: { value: "Home" },
     });
-    fireEvent.change(screen.getByLabelText("カラーテーマ"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "カラーテーマ" }), {
       target: { value: "#1976d2" },
     });
 
@@ -82,10 +82,12 @@ describe("ProjectModal", () => {
       />
     );
 
-    expect(screen.getByLabelText("プロジェクトID")).toHaveValue("project-1");
-    expect(screen.getByLabelText("プロジェクト名")).toHaveValue("ポータル");
+    expect(screen.getByDisplayValue("project-1")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "プロジェクト名" })).toHaveValue(
+      "ポータル"
+    );
 
-    fireEvent.change(screen.getByLabelText("説明"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "説明" }), {
       target: { value: "更新した説明" },
     });
     fireEvent.click(screen.getByRole("button", { name: "更新" }));

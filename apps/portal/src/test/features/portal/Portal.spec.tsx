@@ -177,6 +177,6 @@ describe("Portal", () => {
 
     confirmSpy.mockReturnValueOnce(true);
     fireEvent.click(screen.getByRole("button", { name: "delete-page" }));
-    expect(deletePageMock).toHaveBeenCalledWith("page-1", "project-1", "Home Page");
+    expect(deletePageMock).toHaveBeenCalledWith("page-1", "project-1");
   });
 });

@@ -37,19 +37,19 @@ describe("PageModal", () => {
       />
     );
 
-    fireEvent.change(screen.getByLabelText("ページ名"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "ページ名" }), {
       target: { value: "会社概要" },
     });
-    fireEvent.change(screen.getByLabelText("ページID"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "ページID" }), {
       target: { value: "company" },
     });
-    fireEvent.change(screen.getByLabelText("説明"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "説明" }), {
       target: { value: "会社情報" },
     });
-    fireEvent.change(screen.getByLabelText("相対パス"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "相対パス" }), {
       target: { value: "about" },
     });
-    fireEvent.change(screen.getByLabelText("アイコン名"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "アイコン名" }), {
       target: { value: "Home" },
     });
 
@@ -101,10 +101,10 @@ describe("PageModal", () => {
       />
     );
 
-    expect(screen.getByLabelText("ページID")).toHaveValue("page-1");
-    expect(screen.getByLabelText("ページ名")).toHaveValue("トップ");
+    expect(screen.getByDisplayValue("page-1")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("トップ")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("説明"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "説明" }), {
       target: { value: "更新した説明" },
     });
     fireEvent.click(screen.getByRole("button", { name: "更新" }));

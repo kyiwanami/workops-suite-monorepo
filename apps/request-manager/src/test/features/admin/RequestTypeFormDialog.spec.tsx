@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../renderWithProviders";
@@ -125,7 +125,7 @@ describe("RequestTypeFormDialog", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /名称/ }), {
       target: { value: "経費精算" },
     });
-    fireEvent.change(screen.getByRole("textbox", { name: /説明/ }), {
+    fireEvent.change(screen.getByLabelText("説明"), {
       target: { value: "交通費の精算" },
     });
     fireEvent.change(screen.getByPlaceholderText("10"), {

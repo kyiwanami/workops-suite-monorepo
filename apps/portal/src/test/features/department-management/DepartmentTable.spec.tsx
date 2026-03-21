@@ -1,8 +1,8 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { renderWithProviders } from "../../../renderWithProviders";
-import { DepartmentTable } from "../../../../features/department-management/components/DepartmentTable";
-import type { DepartmentType } from "../../../../features/department-management/types";
+import { renderWithProviders } from "../../renderWithProviders";
+import { DepartmentTable } from "../../../features/department-management/components/DepartmentTable";
+import type { DepartmentType } from "../../../features/department-management/types";
 
 const sampleDepartment: DepartmentType = {
   code: "SALES",

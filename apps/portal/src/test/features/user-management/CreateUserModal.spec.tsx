@@ -1,13 +1,13 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders } from "../../../renderWithProviders";
-import { CreateUserModal } from "../../../../features/user-management/components/CreateUserModal";
+import { renderWithProviders } from "../../renderWithProviders";
+import { CreateUserModal } from "../../../features/user-management/components/CreateUserModal";
 
 const { createUser } = vi.hoisted(() => ({
   createUser: vi.fn(async () => true),
 }));
 
-vi.mock("../../../../features/user-management/hooks/useUserManagement", () => ({
+vi.mock("../../../features/user-management/hooks/useUserManagement", () => ({
   useUserManagement: () => ({
     createUser,
   }),
@@ -40,10 +40,10 @@ describe("CreateUserModal", () => {
 
     renderWithProviders(<CreateUserModal open={true} onClose={onClose} />);
 
-    fireEvent.change(screen.getByLabelText("ユーザー名"), {
+    fireEvent.change(screen.getByRole("textbox", { name: /ユーザー名/ }), {
       target: { value: "taro.yamada" },
     });
-    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+    fireEvent.change(screen.getByRole("textbox", { name: /メールアドレス/ }), {
       target: { value: "taro@example.com" },
     });
 

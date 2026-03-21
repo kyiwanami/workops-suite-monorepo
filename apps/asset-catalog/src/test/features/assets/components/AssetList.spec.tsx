@@ -152,25 +152,36 @@ describe("AssetList", () => {
 
     renderWithProviders(<AssetList />);
 
-    expect(screen.getByText("ノートPC")).toBeInTheDocument();
-    expect(screen.getByText("モニター")).toBeInTheDocument();
+    const table = screen.getByRole("table");
+    const initialRows = within(table)
+      .getAllByRole("row")
+      .filter((row) => within(row).queryByRole("button", { name: "編集" }));
+    const firstAssetRow = initialRows.find((row) => within(row).queryByText("DEP-2"));
+    const secondAssetRow = initialRows.find((row) => within(row).queryByText("DEP-1"));
+    if (!firstAssetRow || !secondAssetRow) {
+      throw new Error("asset row not found");
+    }
+    expect(firstAssetRow).toHaveTextContent("モニター");
+    expect(secondAssetRow).toHaveTextContent("ノートPC");
 
     fireEvent.change(screen.getByLabelText("名称"), {
       target: { value: "ノート" },
     });
 
-    expect(screen.getByText("ノートPC")).toBeInTheDocument();
-    expect(screen.queryByText("モニター")).not.toBeInTheDocument();
+    const filteredRows = within(table)
+      .getAllByRole("row")
+      .filter((row) => within(row).queryByRole("button", { name: "編集" }));
+    const filteredAssetRow = filteredRows.find((row) => within(row).queryByText("DEP-1"));
+    if (!filteredAssetRow) {
+      throw new Error("filtered asset row not found");
+    }
+    expect(filteredRows).toHaveLength(1);
+    expect(filteredAssetRow).toHaveTextContent("ノートPC");
 
     fireEvent.click(screen.getByRole("button", { name: "新規登録" }));
     expect(screen.getByTestId("asset-form-dialog")).toHaveTextContent("new");
 
-    const row = screen.getByText("ノートPC").closest("tr");
-    if (!row) {
-      throw new Error("asset row not found");
-    }
-
-    fireEvent.click(within(row).getAllByRole("button")[1]);
+    fireEvent.click(within(filteredAssetRow).getByRole("button", { name: "編集" }));
     expect(screen.getByTestId("asset-form-dialog")).toHaveTextContent("asset-1");
   });
 
@@ -190,12 +201,15 @@ describe("AssetList", () => {
 
     renderWithProviders(<AssetList />);
 
-    const row = screen.getByText("ノートPC").closest("tr");
+    const row = within(screen.getByRole("table"))
+      .getAllByRole("row")
+      .filter((candidate) => within(candidate).queryByRole("button", { name: "削除" }))
+      .find((candidate) => within(candidate).queryByText("DEP-1"));
     if (!row) {
       throw new Error("asset row not found");
     }
 
-    fireEvent.click(within(row).getAllByRole("button")[2]);
+    fireEvent.click(within(row).getByRole("button", { name: "削除" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("confirm"));

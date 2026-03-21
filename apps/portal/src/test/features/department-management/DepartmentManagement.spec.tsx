@@ -1,9 +1,9 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders } from "../../../renderWithProviders";
-import DepartmentManagement from "../../../../features/department-management/DepartmentManagement";
-import type { DepartmentType } from "../../../../features/department-management/types";
+import { renderWithProviders } from "../../renderWithProviders";
+import DepartmentManagement from "../../../features/department-management/DepartmentManagement";
+import type { DepartmentType } from "../../../features/department-management/types";
 
 const { sampleDepartment, fetchDepartments, deleteDepartment } = vi.hoisted(
   () => ({
@@ -20,7 +20,7 @@ const { sampleDepartment, fetchDepartments, deleteDepartment } = vi.hoisted(
   })
 );
 
-vi.mock("../../../../shared/auth/ability", () => ({
+vi.mock("../../../shared/auth/ability", () => ({
   Can: ({
     children,
     passThrough,
@@ -39,7 +39,7 @@ vi.mock("../../../../shared/auth/ability", () => ({
 }));
 
 vi.mock(
-  "../../../../features/department-management/hooks/useDepartmentManagement",
+  "../../../features/department-management/hooks/useDepartmentManagement",
   () => ({
     useDepartmentManagement: () => ({
       departments: [sampleDepartment],
@@ -51,7 +51,7 @@ vi.mock(
 );
 
 vi.mock(
-  "../../../../features/department-management/components/DepartmentTable",
+  "../../../features/department-management/components/DepartmentTable",
   () => ({
     DepartmentTable: ({
       onDeleteRequest,
@@ -66,7 +66,7 @@ vi.mock(
 );
 
 vi.mock(
-  "../../../../features/department-management/components/CreateDepartmentModal",
+  "../../../features/department-management/components/CreateDepartmentModal",
   () => ({
     CreateDepartmentModal: ({
       open,

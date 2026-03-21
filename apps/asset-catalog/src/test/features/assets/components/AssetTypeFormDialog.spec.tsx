@@ -50,10 +50,10 @@ describe("AssetTypeFormDialog", () => {
 
     expect(screen.getByText("資産種別登録")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("コード"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "コード" }), {
       target: { value: "LAPTOP" },
     });
-    fireEvent.change(screen.getByLabelText("名称"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "名称" }), {
       target: { value: "ノートPC" },
     });
 

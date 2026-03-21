@@ -1,14 +1,14 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, vi, describe, expect, it } from "vitest";
-import { renderWithProviders } from "../../../renderWithProviders";
-import { CreateDepartmentModal } from "../../../../features/department-management/components/CreateDepartmentModal";
+import { renderWithProviders } from "../../renderWithProviders";
+import { CreateDepartmentModal } from "../../../features/department-management/components/CreateDepartmentModal";
 
 const { createDepartment } = vi.hoisted(() => ({
   createDepartment: vi.fn(async () => true),
 }));
 
 vi.mock(
-  "../../../../features/department-management/hooks/useDepartmentManagement",
+  "../../../features/department-management/hooks/useDepartmentManagement",
   () => ({
     useDepartmentManagement: () => ({
       createDepartment,
@@ -43,13 +43,13 @@ describe("CreateDepartmentModal", () => {
       <CreateDepartmentModal open={true} onClose={onClose} />
     );
 
-    fireEvent.change(screen.getByLabelText("部署コード"), {
+    fireEvent.change(screen.getByRole("textbox", { name: /部署コード/ }), {
       target: { value: "sales" },
     });
-    fireEvent.change(screen.getByLabelText("部署名"), {
+    fireEvent.change(screen.getByRole("textbox", { name: /部署名/ }), {
       target: { value: "営業部" },
     });
-    fireEvent.change(screen.getByLabelText("備考"), {
+    fireEvent.change(screen.getByRole("textbox", { name: /備考/ }), {
       target: { value: "運用メモ" },
     });
 

@@ -1,9 +1,9 @@
 import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { renderWithProviders } from "../../../renderWithProviders";
-import UserManagement from "../../../../features/user-management/UserManagement";
+import { renderWithProviders } from "../../renderWithProviders";
+import UserManagement from "../../../features/user-management/UserManagement";
 
-vi.mock("../../../../features/user-management/components/UserList", () => ({
+vi.mock("../../../features/user-management/components/UserList", () => ({
   UserList: () => <div>ユーザー一覧モック</div>,
 }));
 

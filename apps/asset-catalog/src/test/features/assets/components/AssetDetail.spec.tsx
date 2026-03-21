@@ -145,13 +145,21 @@ describe("AssetDetail", () => {
 
     renderWithProviders(<AssetDetail />);
 
-    expect(screen.getByText("資産詳細")).toBeInTheDocument();
-    expect(screen.getByText("ノートPC")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "資産詳細", level: 5 })
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("編集"));
+    const assetTypeLabel = screen.getByText("資産種別");
+    const assetTypeValue = assetTypeLabel.nextElementSibling;
+    if (!assetTypeValue) {
+      throw new Error("asset type value not found");
+    }
+    expect(assetTypeValue).toHaveTextContent("ノートPC");
+
+    fireEvent.click(screen.getByRole("button", { name: "編集" }));
     expect(screen.getByTestId("asset-form-dialog")).toHaveTextContent("asset-1");
 
-    fireEvent.click(screen.getByText("削除"));
+    fireEvent.click(screen.getByRole("button", { name: "削除" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("confirm"));
