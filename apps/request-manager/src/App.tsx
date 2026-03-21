@@ -6,7 +6,12 @@ import { AuthProvider } from "./shared/auth/AuthProvider";
 import { useAuth } from "./shared/auth/useAuth";
 import { AbilityContext, buildAppAbility } from "./shared/auth/ability";
 import AppRoutes from "./app/Routes";
-import ChatWidget from "./features/chatBot/components/ChatWidget";
+import { ChatBotProvider, ChatWidget } from "@workops-suite/shared-chatbot";
+import outputs from "../../../packages/shared-backend/amplify_outputs.json";
+
+const region = outputs.auth.aws_region;
+const runtimeArn = outputs.custom.agentCoreRuntimeArn;
+const agentCoreUrl = `https://bedrock-agentcore.${region}.amazonaws.com/runtimes/${encodeURIComponent(runtimeArn)}/invocations`;
 
 const AuthorizedApp = () => {
   const { userInfo } = useAuth();
@@ -14,11 +19,21 @@ const AuthorizedApp = () => {
   const ability = useMemo(() => buildAppAbility(userInfo), [userInfo]);
 
   return (
-    <AbilityContext.Provider value={ability}>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AbilityContext.Provider>
+    <ChatBotProvider
+      config={{
+        projectId: "@workops-suite/request-manager",
+        agentCoreUrl,
+        userInfo,
+        title: "Todo チャット",
+      }}
+    >
+      <AbilityContext.Provider value={ability}>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AbilityContext.Provider>
+      <ChatWidget />
+    </ChatBotProvider>
   );
 };
 
@@ -37,7 +52,6 @@ export default function App() {
       <NotificationProvider>
         <AuthProvider>
           <AuthorizedApp />
-          <ChatWidget />
         </AuthProvider>
       </NotificationProvider>
     </>

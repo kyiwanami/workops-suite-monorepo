@@ -5,13 +5,10 @@ import { v4 as uuidv4 } from "uuid";
 import type { Schema } from "@workops/data-schema";
 import type { Message } from "../types";
 import { processTraces } from "../utils";
-import { useAuth } from "../../../shared/auth/useAuth";
-import packageJson from "../../../../package.json";
-import outputs from "../../../../../../packages/shared-backend/amplify_outputs.json";
+import { useChatBotConfig } from "../context/ChatBotConfigContext";
 
 const client = generateClient<Schema>();
 const PAGE_SIZE = 10;
-const CHAT_PROJECT_ID = packageJson.name;
 
 // ファイル制限定数
 export const SUPPORTED_FILE_EXTENSIONS = [
@@ -54,18 +51,22 @@ export interface Attachment {
 }
 
 export function useChatBot(sessionId: string) {
+  const { projectId, agentCoreUrl, userInfo } = useChatBotConfig();
   const [messages, setMessages] = useState<Message[]>([]);
   const [nextToken, setNextToken] = useState<string | null | undefined>(
     undefined,
   );
   const [loading, setLoading] = useState(false);
-  const { userInfo } = useAuth();
 
   // メッセージ取得は新しい順で取り、UI表示用に反転する
   const loadMessages = async (token?: string) => {
     setLoading(true);
 
-    const { data, errors, nextToken: newNextToken } = await client.models.ChatMessage.listChatMessageBySessionId(
+    const {
+      data,
+      errors,
+      nextToken: newNextToken,
+    } = await client.models.ChatMessage.listChatMessageBySessionId(
       { sessionId },
       {
         sortDirection: "DESC",
@@ -118,7 +119,7 @@ export function useChatBot(sessionId: string) {
     }
   };
 
-  // AgentCore Runtime直接呼び出し（ダミーURL対応）
+  // AgentCore Runtime直接呼び出し
   const sendMessage = async (query: string, attachments?: Attachment[]) => {
     if (!query || !sessionId) {
       return;
@@ -149,13 +150,14 @@ export function useChatBot(sessionId: string) {
     };
     setMessages((prev) => [...prev, optimisticMsg]);
 
-    const { errors: userMessageErrors } = await client.models.ChatMessage.create({
-      sessionId,
-      projectId: CHAT_PROJECT_ID,
-      role: "user",
-      content: query,
-      traces: null,
-    });
+    const { errors: userMessageErrors } =
+      await client.models.ChatMessage.create({
+        sessionId,
+        projectId,
+        role: "user",
+        content: query,
+        traces: null,
+      });
 
     if (userMessageErrors) {
       console.error("User Message.create errors:", userMessageErrors);
@@ -164,11 +166,10 @@ export function useChatBot(sessionId: string) {
       return;
     }
 
-    const { errors: userSessionUpdateErrors } = await client.models.ChatSession.update(
-      {
+    const { errors: userSessionUpdateErrors } =
+      await client.models.ChatSession.update({
         id: sessionId,
-      }
-    );
+      });
 
     if (userSessionUpdateErrors) {
       console.error("Session.update errors:", userSessionUpdateErrors);
@@ -202,13 +203,8 @@ export function useChatBot(sessionId: string) {
       console.warn("User info does not contain departmentCode");
     }
 
-    // AgentCore Runtime ARNから実行時にInvokeAgentRuntime URLを組み立てる
-    const runtimeArn = outputs.custom.agentCoreRuntimeArn;
-    const region = outputs.auth.aws_region;
-    const url = `https://bedrock-agentcore.${region}.amazonaws.com/runtimes/${encodeURIComponent(runtimeArn)}/invocations`;
-
     console.log("AgentCore Direct Invocation:");
-    console.log("  URL:", url);
+    console.log("  URL:", agentCoreUrl);
     console.log("  Access Token:", accessToken.substring(0, 20) + "...");
     console.log("  Requester Sub:", requesterSub);
     console.log("  Department ID:", departmentId);
@@ -221,7 +217,7 @@ export function useChatBot(sessionId: string) {
 
     let result: { answer?: string; traces?: string | null } | null = null;
     try {
-      const response = await fetch(url, {
+      const response = await fetch(agentCoreUrl, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -274,7 +270,7 @@ export function useChatBot(sessionId: string) {
 
     const { errors: aiMessageErrors } = await client.models.ChatMessage.create({
       sessionId,
-      projectId: CHAT_PROJECT_ID,
+      projectId,
       role: "assistant",
       content: aiAnswer,
       traces: result.traces ? JSON.stringify(result.traces) : undefined,
@@ -287,9 +283,10 @@ export function useChatBot(sessionId: string) {
       return;
     }
 
-    const { errors: aiSessionUpdateErrors } = await client.models.ChatSession.update({
-      id: sessionId,
-    });
+    const { errors: aiSessionUpdateErrors } =
+      await client.models.ChatSession.update({
+        id: sessionId,
+      });
 
     if (aiSessionUpdateErrors) {
       console.error("Session.update errors:", aiSessionUpdateErrors);

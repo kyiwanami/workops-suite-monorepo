@@ -288,13 +288,13 @@ export function ChatPanel({ sessionId }: ChatPanelProps) {
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              handleSend();
+              void handleSend();
             }
           }}
           disabled={loading}
         />
         <IconButton
-          onClick={handleSend}
+          onClick={() => void handleSend()}
           color="primary"
           disabled={loading || (!input.trim() && files.length === 0)}
         >

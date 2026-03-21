@@ -19,9 +19,11 @@ import {
 } from "@mui/icons-material";
 import { useSessions } from "../hooks/useSessions";
 import { useSession } from "../hooks/useSession";
+import { useChatBotConfig } from "../context/ChatBotConfigContext";
 import { ChatPanel } from "./ChatPanel";
 
 export default function ChatWidget() {
+  const { title: configTitle } = useChatBotConfig();
   const [open, setOpen] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -64,7 +66,7 @@ export default function ChatWidget() {
   // ヘッダータイトル取得
   function getHeaderTitle(): string {
     if (!currentSessionId) {
-      return "Todo チャット";
+      return configTitle ?? "チャット";
     }
     return currentSession?.name ?? "新しいチャット";
   }
@@ -136,7 +138,7 @@ export default function ChatWidget() {
               </Tooltip>
               <Tooltip title="新しい会話">
                 <IconButton
-                  onClick={handleNewSession}
+                  onClick={() => void handleNewSession()}
                   sx={{ color: "white" }}
                 >
                   <AddIcon />
@@ -186,7 +188,7 @@ export default function ChatWidget() {
                   />
                   <IconButton
                     size="small"
-                    onClick={(e) => handleDeleteSession(session.id, e)}
+                    onClick={(e) => void handleDeleteSession(session.id, e)}
                     sx={{ color: "text.secondary" }}
                   >
                     <DeleteIcon fontSize="small" />

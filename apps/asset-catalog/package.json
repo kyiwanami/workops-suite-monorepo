@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@workops-suite/shared-chatbot": "*",
     "@aws-amplify/ui-react": "^6.5.5",
     "@base-ui/react": "^1.2.0",
     "@casl/ability": "^6.8.0",

@@ -2,7 +2,7 @@ import type { TraceStep, KbChunk, BedrockMessage } from "./types";
 
 // トレース処理ロジック
 export function processTraces(
-  rawTraces: string | number | true | object | any[],
+  rawTraces: string | number | true | object | unknown[],
 ): TraceStep[] {
   // 生トレースデータを表示用に構造化
   const structuredTraces: TraceStep[] = [];

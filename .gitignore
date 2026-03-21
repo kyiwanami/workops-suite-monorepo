@@ -4,3 +4,4 @@ dist/
 amplify_outputs.json
 .env
 *.local
+__pycache__

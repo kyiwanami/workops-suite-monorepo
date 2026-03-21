@@ -1,9 +1,10 @@
+import base64
 import json
 import logging
 import os
 
 import boto3
-from bedrock_agentcore import AgentCoreApp
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 from memory_manager import MemoryManager
 from mcp_client import McpClient
@@ -12,25 +13,48 @@ from prompts import build_system_prompt
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-app = AgentCoreApp()
+# AgentCore Runtime が要求するエントリポイントアプリを初期化する。
+app = BedrockAgentCoreApp()
 
 MODEL_ID = "jp.anthropic.claude-sonnet-4-6"
 MAX_TOOL_ITERATIONS = 10
+AWS_REGION = os.environ.get("AWS_REGION", "ap-northeast-1")
+
+
+def decode_jwt_claims(auth_header: str) -> dict:
+    token = auth_header[7:] if auth_header.startswith("Bearer ") else auth_header
+    token_parts = token.split(".")
+    if len(token_parts) != 3:
+        raise ValueError("Authorization header does not contain a valid JWT")
+
+    payload_segment = token_parts[1]
+    payload_padding = "=" * (-len(payload_segment) % 4)
+    payload_bytes = base64.urlsafe_b64decode(payload_segment + payload_padding)
+    return json.loads(payload_bytes.decode("utf-8"))
 
 
 @app.entrypoint
 def invoke(payload: dict, context) -> dict:
-    query: str = payload["query"]
-    session_id: str = payload["sessionId"]
-    actor_id: str = payload["actorId"]
-    auth_header: str = context.authorization
+    query: str | None = payload.get("query")
+    session_id: str | None = payload.get("sessionId")
     attachments: list = payload.get("attachments", [])
+    request_headers = getattr(context, "request_headers", {}) or {}
+    auth_header: str | None = request_headers.get("Authorization")
 
     if not query or not query.strip():
         raise ValueError("query is required")
 
+    if not session_id:
+        raise ValueError("sessionId is required")
+
     if not auth_header:
         raise ValueError("Authorization header is required")
+
+    # Memory の actor は認証済み JWT の sub claim を使って決定する。
+    claims = decode_jwt_claims(auth_header)
+    actor_id = claims.get("sub")
+    if not actor_id:
+        raise ValueError("JWT sub claim is required")
 
     logger.info("Invoking agent", extra={"sessionId": session_id, "actorId": actor_id, "queryLength": len(query)})
 
@@ -45,7 +69,7 @@ def invoke(payload: dict, context) -> dict:
 
     logger.info("Initialized tools from Gateway", extra={"count": len(bedrock_tools)})
 
-    bedrock = boto3.client("bedrock-runtime")
+    bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION)
 
     # 初期メッセージ（添付ファイル対応）
     initial_content = [{"text": query}]
