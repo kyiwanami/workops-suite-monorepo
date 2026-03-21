@@ -13,9 +13,24 @@ export default defineConfig({
       ),
     },
   },
-  // Zod schema の最小テストを node 環境で回す。
+  // node テストと React テストを分離して、環境差分を明示する。
   test: {
-    environment: "node",
-    include: ["src/**/*.spec.ts"],
+    projects: [
+      {
+        test: {
+          name: "logic",
+          environment: "node",
+          include: ["src/**/*.spec.ts"],
+        },
+      },
+      {
+        test: {
+          name: "react",
+          environment: "jsdom",
+          setupFiles: ["./src/test/setup.ts"],
+          include: ["src/**/*.spec.tsx"],
+        },
+      },
+    ],
   },
 });
