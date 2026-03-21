@@ -1,0 +1,63 @@
+applications:
+  - appRoot: apps/asset-catalog
+    frontend:
+      buildSpec: |
+        version: 1
+        frontend:
+          phases:
+            preBuild:
+              commands:
+                - npm ci
+            build:
+              commands:
+                - npx ampx generate outputs --branch $AWS_BRANCH --app-id BACKEND_APP_ID
+                - npm run build --workspace=apps/asset-catalog
+          artifacts:
+            baseDirectory: apps/asset-catalog/dist
+            files:
+              - '**/*'
+          cache:
+            paths:
+              - node_modules/**/*
+
+  - appRoot: apps/portal
+    frontend:
+      buildSpec: |
+        version: 1
+        frontend:
+          phases:
+            preBuild:
+              commands:
+                - npm ci
+            build:
+              commands:
+                - npx ampx generate outputs --branch $AWS_BRANCH --app-id BACKEND_APP_ID
+                - npm run build --workspace=apps/portal
+          artifacts:
+            baseDirectory: apps/portal/dist
+            files:
+              - '**/*'
+          cache:
+            paths:
+              - node_modules/**/*
+
+  - appRoot: apps/request-manager
+    frontend:
+      buildSpec: |
+        version: 1
+        frontend:
+          phases:
+            preBuild:
+              commands:
+                - npm ci
+            build:
+              commands:
+                - npx ampx generate outputs --branch $AWS_BRANCH --app-id BACKEND_APP_ID
+                - npm run build --workspace=apps/request-manager
+          artifacts:
+            baseDirectory: apps/request-manager/dist
+            files:
+              - '**/*'
+          cache:
+            paths:
+              - node_modules/**/*
