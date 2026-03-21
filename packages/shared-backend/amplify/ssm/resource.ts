@@ -10,6 +10,7 @@ export type ParameterStoreArgs = {
   authRoleArn: string;
   unauthRoleArn: string;
   userPoolClientId: string;
+  departmentTableArn: string;
 };
 
 /**
@@ -50,6 +51,11 @@ export const setupParameterStore = (
       value: args.userPoolClientId,
       description: "ユーザープールクライアントID",
     },
+    {
+      name: "DEPARTMENT_TABLE_ARN",
+      value: args.departmentTableArn,
+      description: "部署マスタDynamoDBテーブルARN",
+    },
   ];
 
   // パラメータストアに登録
@@ -64,11 +70,6 @@ export const setupParameterStore = (
 };
 
 const PARAMETERS = [
-  "USER_POOL_ID",
-  "IDENTITY_POOL_ID",
-  "AUTH_ROLE_ARN",
-  "UNAUTH_ROLE_ARN",
-  "USER_POOL_CLIENT_ID",
   "GATEWAY_ID",
   "GATEWAY_ARN",
   "GATEWAY_NAME",
@@ -90,11 +91,6 @@ export const createParameterStore = async (
   const ssmClient = new SSMClient({});
   const basePath = `/amplify/${pathPrefix}`;
   const config: ParameterStoreConfig = {
-    USER_POOL_ID: "",
-    IDENTITY_POOL_ID: "",
-    AUTH_ROLE_ARN: "",
-    UNAUTH_ROLE_ARN: "",
-    USER_POOL_CLIENT_ID: "",
     GATEWAY_ID: "",
     GATEWAY_ARN: "",
     GATEWAY_NAME: "",

@@ -69,10 +69,10 @@ export class BedrockResources extends Construct {
     // 3. Bedrock Knowledge Baseの作成 (S3 Vector Store構成)
     const knowledgeBase = new bedrock.CfnKnowledgeBase(
       this,
-      "WorkopsKnowledgeBase",
+      "AssetKnowledgeBase",
       {
-        name: `workops-kb-${props.branchName}`,
-        description: "Knowledge base for Workops application using S3 Vector Store",
+        name: `asset-kb-${props.branchName}`,
+        description: "Knowledge base for Asset Catalog application using S3 Vector Store",
         roleArn: bedrockExecutionRole.roleArn,
         knowledgeBaseConfiguration: {
           type: "VECTOR",
@@ -93,8 +93,8 @@ export class BedrockResources extends Construct {
     knowledgeBase.node.addDependency(bedrockExecutionRole);
 
     // 4. データソースの作成
-    const dataSource = new bedrock.CfnDataSource(this, "WorkopsDataSource", {
-      name: `workops-ds-${props.branchName}`,
+    const dataSource = new bedrock.CfnDataSource(this, "AssetDataSource", {
+      name: `asset-ds-${props.branchName}`,
       knowledgeBaseId: knowledgeBase.ref,
       dataSourceConfiguration: {
         type: "S3",

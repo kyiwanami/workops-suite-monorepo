@@ -4,18 +4,22 @@ import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Provider } from "aws-cdk-lib/custom-resources";
-import { CustomResource } from "aws-cdk-lib";
-import { createAuthResource } from "./auth/resource";
+import { auth, setupAuth } from "./auth/resource";
 import { data } from "./data/resource";
 import { createParameterStore } from "./ssm/resource";
-import { storage } from "./storage/resource";
-import { VectorStoreResources } from "./s3vectors/resource";
-import { BedrockResources } from "./bedrock/resource";
+import { storage as assetStorage } from "./storage/asset/resource";
+import { storage as requestStorage } from "./storage/request/resource";
+import { VectorStoreResources as AssetVectorStoreResources } from "./s3vectors/asset/resource";
+import { VectorStoreResources as RequestVectorStoreResources } from "./s3vectors/request/resource";
+import { BedrockResources as AssetBedrockResources } from "./bedrock/asset/resource";
+import { BedrockResources as RequestBedrockResources } from "./bedrock/request/resource";
+
 import { listUsersFunction } from "./function/user-operations/list-users/resource";
 import { getUserFunction } from "./function/user-operations/get-user/resource";
 import { createUserFunction } from "./function/user-operations/create-user/resource";
 import { setUserEnabledFunction } from "./function/user-operations/set-user-enabled/resource";
 import { deleteUserFunction } from "./function/user-operations/delete-user/resource";
+import { registerCallbackUrlFunction } from "./function/register-callback-url/resource";
 
 import { listGroupsFunction } from "./function/group-operations/list-groups/resource";
 import { createGroupFunction } from "./function/group-operations/create-group/resource";
@@ -26,7 +30,6 @@ import { listGroupsForUserFunction } from "./function/group-operations/list-grou
 import { listUsersInGroupFunction } from "./function/group-operations/list-users-in-group/resource";
 import { departmentStreamHandlerFunction } from "./function/department-stream-handler/resource";
 import { preTokenGenerationFunction } from "./function/pre-token-generation/resource";
-import { attachPreTokenTriggerFunction } from "./function/attach-pre-token-trigger/resource";
 
 import { assetToolCreate } from "./function/tools/asset-tool-create/resource";
 import { assetKbSearch } from "./function/tools/asset-kb-search/resource";
@@ -45,7 +48,6 @@ import { requestToolList } from "./function/tools/request-tool-list/resource";
 import { requestToolUpdate } from "./function/tools/request-tool-update/resource";
 import { requestTypeToolList } from "./function/tools/request-type-tool-list/resource";
 import { syncRequest } from "./function/sync-request/resource";
-import { registerCallbackUrlFunction } from "./function/register-callback-url/resource";
 
 import { createGatewayTargets as createAssetGatewayTargets } from "./bedrock-agentcore/gateway/asset/resource";
 import { createGatewayTargets as createRequestGatewayTargets } from "./bedrock-agentcore/gateway/request/resource";
@@ -63,14 +65,16 @@ const pathPrefix = `workops-suite-${branchName}`;
 const params = await createParameterStore(pathPrefix);
 
 const backend = defineBackend({
-  auth: createAuthResource(params),
+  auth,
   data,
-  storage,
+  assetStorage,
+  requestStorage,
   listUsersFunction,
   getUserFunction,
   createUserFunction,
   setUserEnabledFunction,
   deleteUserFunction,
+  registerCallbackUrlFunction,
   listGroupsFunction,
   createGroupFunction,
   deleteGroupFunction,
@@ -80,7 +84,6 @@ const backend = defineBackend({
   listUsersInGroupFunction,
   departmentStreamHandlerFunction,
   preTokenGenerationFunction,
-  attachPreTokenTriggerFunction,
   assetToolCreate,
   assetKbSearch,
   assetToolUpdate,
@@ -97,7 +100,6 @@ const backend = defineBackend({
   requestToolUpdate,
   requestTypeToolList,
   syncRequest,
-  registerCallbackUrlFunction,
 });
 
 // Backend型をエクスポート
@@ -130,6 +132,9 @@ const userPoolId = backend.auth.resources.userPool.userPoolId;
 
 backend.departmentStreamHandlerFunction.addEnvironment("USER_POOL_ID", userPoolId);
 
+// Auth設定（Cognito User Poolなど）を適用
+setupAuth(backend, pathPrefix);
+
 // ==================================================
 // IAM: 認証済みユーザーに AgentCore 実行権限を付与
 // ==================================================
@@ -141,35 +146,6 @@ backend.auth.resources.authenticatedUserIamRole.addToPrincipalPolicy(
 );
 
 const userPool = backend.auth.resources.userPool;
-const preTokenGenerationLambda = backend.preTokenGenerationFunction.resources.lambda;
-
-// ==================================================
-// Cognito: Pre Token Generation Triggerアタッチ
-// ==================================================
-preTokenGenerationLambda.addPermission("AllowCognitoInvokePreTokenGeneration", {
-  principal: new iam.ServicePrincipal("cognito-idp.amazonaws.com"),
-  sourceArn: userPool.userPoolArn,
-  action: "lambda:InvokeFunction",
-});
-
-backend.attachPreTokenTriggerFunction.resources.lambda.addToRolePolicy(
-  new iam.PolicyStatement({
-    actions: ["cognito-idp:DescribeUserPool", "cognito-idp:UpdateUserPool"],
-    resources: [userPool.userPoolArn],
-  }),
-);
-
-const preTokenTriggerProvider = new Provider(backend.stack, "PreTokenTriggerProvider", {
-  onEventHandler: backend.attachPreTokenTriggerFunction.resources.lambda,
-});
-
-new CustomResource(backend.stack, "AttachPreTokenTrigger", {
-  serviceToken: preTokenTriggerProvider.serviceToken,
-  properties: {
-    UserPoolId: userPool.userPoolId,
-    TriggerLambdaArn: preTokenGenerationLambda.functionArn,
-  },
-});
 
 // ==================================================
 // IAM: グループ操作関数に Cognito 権限を付与
@@ -254,20 +230,40 @@ departmentStreamHandlerLambda.addToRolePolicy(
 // ==================================================
 // Vector Store + Bedrock Knowledge Base (Asset / Request)
 // ==================================================
-const vectorStoreStack = backend.createStack("VectorStoreStack");
-const vectorStoreResources = new VectorStoreResources(
-  vectorStoreStack,
-  "VectorStoreResources",
+const assetVectorStoreStack = backend.createStack("AssetVectorStoreStack");
+const assetVectorStoreResources = new AssetVectorStoreResources(
+  assetVectorStoreStack,
+  "AssetVectorStoreResources",
 );
 
-const bedrockStack = backend.createStack("BedrockStack");
-const bedrockResources = new BedrockResources(
-  bedrockStack,
-  "BedrockResources",
+const requestVectorStoreStack = backend.createStack("RequestVectorStoreStack");
+const requestVectorStoreResources = new RequestVectorStoreResources(
+  requestVectorStoreStack,
+  "RequestVectorStoreResources",
+);
+
+const assetBedrockStack = backend.createStack("AssetBedrockStack");
+const assetBedrockResources = new AssetBedrockResources(
+  assetBedrockStack,
+  "AssetBedrockResources",
   {
-    dataSourceBucketArn: backend.storage.resources.bucket.bucketArn,
-    vectorStoreBucketArn: vectorStoreResources.vectorStoreBucketArn,
-    vectorStoreIndexArn: vectorStoreResources.vectorIndexArn,
+    dataSourceBucketArn: backend.assetStorage.resources.bucket.bucketArn,
+    vectorStoreBucketArn: assetVectorStoreResources.vectorStoreBucketArn,
+    vectorStoreIndexArn: assetVectorStoreResources.vectorIndexArn,
+    region: backend.stack.region,
+    account: backend.stack.account,
+    branchName,
+  },
+);
+
+const requestBedrockStack = backend.createStack("RequestBedrockStack");
+const requestBedrockResources = new RequestBedrockResources(
+  requestBedrockStack,
+  "RequestBedrockResources",
+  {
+    dataSourceBucketArn: backend.requestStorage.resources.bucket.bucketArn,
+    vectorStoreBucketArn: requestVectorStoreResources.vectorStoreBucketArn,
+    vectorStoreIndexArn: requestVectorStoreResources.vectorIndexArn,
     region: backend.stack.region,
     account: backend.stack.account,
     branchName,
@@ -294,8 +290,10 @@ backend.syncRequest.resources.lambda.addEventSource(
   }),
 );
 
-backend.storage.resources.bucket.grantReadWrite(backend.syncAsset.resources.lambda);
-backend.storage.resources.bucket.grantReadWrite(backend.syncRequest.resources.lambda);
+backend.assetStorage.resources.bucket.grantReadWrite(backend.syncAsset.resources.lambda);
+backend.requestStorage.resources.bucket.grantReadWrite(
+  backend.syncRequest.resources.lambda,
+);
 
 // sync LambdaにKB取り込みジョブ実行権限を付与
 [backend.syncAsset, backend.syncRequest].forEach((func) => {
@@ -312,42 +310,42 @@ backend.storage.resources.bucket.grantReadWrite(backend.syncRequest.resources.la
 // sync Lambda環境変数設定（Asset）
 backend.syncAsset.addEnvironment(
   "DATA_SOURCE_BUCKET_NAME",
-  backend.storage.resources.bucket.bucketName,
+  backend.assetStorage.resources.bucket.bucketName,
 );
 backend.syncAsset.addEnvironment(
   "KNOWLEDGE_BASE_ID",
-  bedrockResources.knowledgeBaseId,
+  assetBedrockResources.knowledgeBaseId,
 );
-backend.syncAsset.addEnvironment("DATA_SOURCE_ID", bedrockResources.dataSourceId);
+backend.syncAsset.addEnvironment("DATA_SOURCE_ID", assetBedrockResources.dataSourceId);
 
 // sync Lambda環境変数設定（Request）
 backend.syncRequest.addEnvironment(
   "DATA_SOURCE_BUCKET_NAME",
-  backend.storage.resources.bucket.bucketName,
+  backend.requestStorage.resources.bucket.bucketName,
 );
 backend.syncRequest.addEnvironment(
   "KNOWLEDGE_BASE_ID",
-  bedrockResources.knowledgeBaseId,
+  requestBedrockResources.knowledgeBaseId,
 );
 backend.syncRequest.addEnvironment(
   "DATA_SOURCE_ID",
-  bedrockResources.dataSourceId,
+  requestBedrockResources.dataSourceId,
 );
 
 // kb-search Lambda環境変数設定
 backend.assetKbSearch.addEnvironment(
   "KNOWLEDGE_BASE_ID",
-  bedrockResources.knowledgeBaseId,
+  assetBedrockResources.knowledgeBaseId,
 );
 backend.requestKbSearch.addEnvironment(
   "KNOWLEDGE_BASE_ID",
-  bedrockResources.knowledgeBaseId,
+  requestBedrockResources.knowledgeBaseId,
 );
 
 // kb-search LambdaにRetrieve権限を付与
 [
-  { fn: backend.assetKbSearch, kbId: bedrockResources.knowledgeBaseId },
-  { fn: backend.requestKbSearch, kbId: bedrockResources.knowledgeBaseId },
+  { fn: backend.assetKbSearch, kbId: assetBedrockResources.knowledgeBaseId },
+  { fn: backend.requestKbSearch, kbId: requestBedrockResources.knowledgeBaseId },
 ].forEach(({ fn, kbId }) => {
   fn.resources.lambda.addToRolePolicy(
     new PolicyStatement({
@@ -431,3 +429,25 @@ backend.addOutput({
     agentCoreRuntimeArn: params.RUNTIME_ARN,
   },
 });
+
+// ==================================================
+// CustomResource: サブシステムからのCallback URL登録
+// ==================================================
+// サンドボックス環境では不要
+if (process.env.AWS_BRANCH) {
+  // Lambda関数にCognito操作権限を付与
+  backend.registerCallbackUrlFunction.resources.lambda.addToRolePolicy(
+    new iam.PolicyStatement({
+      actions: [
+        "cognito-idp:DescribeUserPoolClient",
+        "cognito-idp:UpdateUserPoolClient",
+      ],
+      resources: [userPool.userPoolArn],
+    }),
+  );
+
+  // CustomResource Provider作成
+  new Provider(backend.stack, "CallbackUrlProvider", {
+    onEventHandler: backend.registerCallbackUrlFunction.resources.lambda,
+  });
+}
