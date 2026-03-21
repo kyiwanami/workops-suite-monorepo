@@ -4,4 +4,5 @@ export const getUserFunction = defineFunction({
   name: "getUser",
   entry: "./handler.ts",
   resourceGroupName: "user-operations",
+  logging: { retention: "3 months" },
 });

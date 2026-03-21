@@ -5,4 +5,5 @@ export const webSearchApiKeyProviderFunction = defineFunction({
   name: "web-search-api-key-provider",
   entry: "./handler.ts",
   timeoutSeconds: 300,
+  logging: { retention: "3 months" },
 });

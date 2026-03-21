@@ -4,4 +4,5 @@ export const requestKbSearch = defineFunction({
   name: "request-kb-search",
   entry: "./handler.ts",
   resourceGroupName: "agentcore-tools",
+  logging: { retention: "3 months" },
 });

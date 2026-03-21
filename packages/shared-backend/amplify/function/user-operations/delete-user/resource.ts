@@ -4,4 +4,5 @@ export const deleteUserFunction = defineFunction({
   name: "deleteUser",
   entry: "./handler.ts",
   resourceGroupName: "user-operations",
+  logging: { retention: "3 months" },
 });

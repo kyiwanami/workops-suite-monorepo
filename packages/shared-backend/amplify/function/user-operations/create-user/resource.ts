@@ -4,4 +4,5 @@ export const createUserFunction = defineFunction({
   name: "createUser",
   entry: "./handler.ts",
   resourceGroupName: "user-operations",
+  logging: { retention: "3 months" },
 });

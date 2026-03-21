@@ -4,4 +4,5 @@ export const assetToolDelete = defineFunction({
   name: "asset-tool-delete",
   entry: "./handler.ts",
   resourceGroupName: "agentcore-tools",
+  logging: { retention: "3 months" },
 });

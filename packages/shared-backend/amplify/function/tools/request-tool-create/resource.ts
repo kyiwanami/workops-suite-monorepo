@@ -4,4 +4,5 @@ export const requestToolCreate = defineFunction({
   name: "request-tool-create",
   entry: "./handler.ts",
   resourceGroupName: "agentcore-tools",
+  logging: { retention: "3 months" },
 });

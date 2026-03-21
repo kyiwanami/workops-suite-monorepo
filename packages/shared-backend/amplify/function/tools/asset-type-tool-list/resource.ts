@@ -4,4 +4,5 @@ export const assetTypeToolList = defineFunction({
   name: "asset-type-tool-list",
   entry: "./handler.ts",
   resourceGroupName: "agentcore-tools",
+  logging: { retention: "3 months" },
 });

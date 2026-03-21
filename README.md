@@ -145,6 +145,16 @@ cd apps/request-manager && npx tsc --noEmit
 - **API**: AWS AppSync (Amplify Data)
 - **IaC**: AWS CDK
 
+## 📊 可観測性（Observability）
+
+| レイヤー | 手段 | 備考 |
+|---------|------|------|
+| AgentCore Runtime | **OpenTelemetry 組み込み済み** → X-Ray | エントリポイントが `opentelemetry-instrument` ラッパー経由のため自動計装 |
+| Gateway / Memory / Browser | CloudWatch メトリクス自動発行 | Bedrock AgentCore マネージドサービス |
+| Lambda 関数（全30+個） | CloudWatch Logs（90日保持） | `defineFunction` の `logging.retention` で設定済み |
+
+> **注意**: Lambda に X-Ray が設定されていなくても、AgentCore Runtime の OTel トレースで AI エージェントのフロー全体はカバーされている。Lambda の X-Ray は「AgentCore トレースと Lambda を同一トレース ID で繋ぐ」追加強化であり、現時点では省略。
+
 ## 🔐 セキュリティ
 
 - **認証**: Cognito User Pool

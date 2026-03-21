@@ -4,4 +4,5 @@ export const syncAsset = defineFunction({
   name: "sync-asset",
   entry: "./handler.ts",
   resourceGroupName: "data",
+  logging: { retention: "3 months" },
 });
