@@ -20,6 +20,7 @@ import { isTerminalState } from "../workflow";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
 import { ReasonDialog } from "./ReasonDialog";
 import { RequestFormDialog } from "./RequestForm";
+import { useAuth } from "../../../shared/auth/useAuth";
 import { useNotification } from "../../../shared/notification";
 
 export function RequestDetail() {
@@ -37,18 +38,22 @@ export function RequestDetail() {
     rejectRequest,
     returnRequest,
   } = useRequest(id);
+  const { userInfo } = useAuth();
   const { requestTypes } = useRequestTypes();
-  const { showSuccess } = useNotification();
+  const { showSuccess, showError } = useNotification();
 
   const [editOpen, setEditOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  type ConfirmAction = "submit" | "withdraw" | "resubmit" | "approve";
+  type ReasonAction = "reject" | "return";
+
   const [confirmDialogOpen, setConfirmDialogOpen] = useState<{
     open: boolean;
-    action?: "submit" | "withdraw" | "resubmit" | "approve";
+    action?: ConfirmAction;
   }>({ open: false });
   const [reasonDialogOpen, setReasonDialogOpen] = useState<{
     open: boolean;
-    action?: "reject" | "return";
+    action?: ReasonAction;
   }>({ open: false });
 
   if (loading) {
@@ -100,7 +105,7 @@ export function RequestDetail() {
   const canReject = canRejectRequestAbility && request.status === "submitted";
   const canReturn = canReturnRequestAbility && request.status === "submitted";
 
-  const handleConfirmAction = async (action: string) => {
+  const handleConfirmAction = async (action: ConfirmAction) => {
     setActionLoading(true);
     let result = null;
     if (action === "submit") {
@@ -110,7 +115,14 @@ export function RequestDetail() {
     } else if (action === "resubmit") {
       result = await resubmitRequest();
     } else if (action === "approve") {
-      result = await approveRequest();
+      if (!userInfo.userId) {
+        console.error("Request approve validation error", "ユーザー情報が取得できません");
+        showError("ユーザー情報が取得できません");
+        setActionLoading(false);
+        setConfirmDialogOpen({ open: false });
+        return;
+      }
+      result = await approveRequest(userInfo.userId);
     }
     setActionLoading(false);
     if (result) {
@@ -119,7 +131,7 @@ export function RequestDetail() {
     setConfirmDialogOpen({ open: false });
   };
 
-  const handleReasonAction = async (reason: string, action: string) => {
+  const handleReasonAction = async (reason: string, action: ReasonAction) => {
     setActionLoading(true);
     const result =
       action === "reject"
@@ -290,6 +302,34 @@ export function RequestDetail() {
                 : "-"}
             </Typography>
           </Stack>
+          {request.approverSub && (
+            <Stack spacing={0.5}>
+              <Typography variant="caption" color="text.secondary">
+                承認者
+              </Typography>
+              <Typography variant="body2">{request.approverSub}</Typography>
+            </Stack>
+          )}
+          {request.rejectionReason && (
+            <Stack spacing={0.5}>
+              <Typography variant="caption" color="text.secondary">
+                却下理由
+              </Typography>
+              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                {request.rejectionReason}
+              </Typography>
+            </Stack>
+          )}
+          {request.returnReason && (
+            <Stack spacing={0.5}>
+              <Typography variant="caption" color="text.secondary">
+                差戻し理由
+              </Typography>
+              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                {request.returnReason}
+              </Typography>
+            </Stack>
+          )}
         </Stack>
       </Card>
 

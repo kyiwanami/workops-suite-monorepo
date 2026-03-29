@@ -190,6 +190,7 @@ export function useChatBot(sessionId: string) {
     }
 
     // 認証コンテキストからユーザー情報（sub/部署コード）を取得
+    // TODO: チャット経由のレビュー操作では approverSub / rejectionReason / returnReason の安全な保存をまだ行わない。
     const requesterSub = userInfo.userId;
     const departmentId = userInfo.departmentCode ?? "";
 

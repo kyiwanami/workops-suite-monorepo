@@ -332,9 +332,12 @@ const schema = a
         amount: a.integer().required(),
         submittedAt: a.datetime(),
         approvedAt: a.datetime(),
+        approverSub: a.string(),
         rejectedAt: a.datetime(),
+        rejectionReason: a.string(),
         withdrawnAt: a.datetime(),
         returnedAt: a.datetime(),
+        returnReason: a.string(),
       })
       .authorization((allow) => [
         // FIXME: ownerDefinedIn("departmentId") を同一フィールドに複数定義すると

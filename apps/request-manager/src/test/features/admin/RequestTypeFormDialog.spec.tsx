@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
+import type * as React from "react";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../renderWithProviders";
@@ -26,8 +27,6 @@ vi.mock("../../../features/admin/hooks/useRequestTypes", () => ({
 }));
 
 vi.mock("@base-ui/react/number-field", async () => {
-  const React = await import("react");
-
   type NumberFieldContextValue = {
     value: number | null;
     onValueChange?: (value: number | null) => void;

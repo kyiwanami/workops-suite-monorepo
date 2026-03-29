@@ -3,7 +3,6 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@workops/data-schema";
 import {
   isTransitionAllowed,
-  requiresReason,
   type RequestStatusCode,
 } from "../workflow";
 import { useNotification } from "../../../shared/notification";
@@ -13,6 +12,26 @@ const client = generateClient<Schema>();
 export type Request = Schema["Request"]["type"];
 export type RequestCreateInput = Schema["Request"]["createType"];
 export type RequestUpdateInput = Schema["Request"]["updateType"];
+
+interface RequestTransitionFields {
+  submittedAt?: string;
+  approvedAt?: string;
+  approverSub?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  withdrawnAt?: string;
+  returnedAt?: string;
+  returnReason?: string;
+}
+
+interface RequestCreateDraftInput {
+  departmentId: string;
+  requesterSub: string;
+  requestTypeId: string;
+  title: string;
+  description?: string | null;
+  amount: number;
+}
 
 export function useRequest(id?: string) {
   const [request, setRequest] = useState<Request | null>(null);
@@ -61,7 +80,7 @@ export function useRequest(id?: string) {
   }, [id]);
 
   const createRequest = async (
-    input: Omit<RequestCreateInput, "status">,
+    input: RequestCreateDraftInput,
   ): Promise<Request | null> => {
     const { data, errors } = await client.models.Request.create({
       ...input,
@@ -95,20 +114,19 @@ export function useRequest(id?: string) {
 
   const applyTransition = async (
     targetStatus: RequestStatusCode,
-    timestampField: Partial<{
-      submittedAt: string;
-      approvedAt: string;
-      rejectedAt: string;
-      returnedAt: string;
-      withdrawnAt: string;
-    }>,
+    transitionFields: RequestTransitionFields,
   ): Promise<Request | null> => {
     if (!request) {
+      console.error("Request transition error", "申請データが読み込まれていません");
       showError("申請データが読み込まれていません");
       return null;
     }
 
     if (!isTransitionAllowed(request.status, targetStatus)) {
+      console.error(
+        "Request transition error",
+        "現在の状態ではこの操作は実行できません",
+      );
       showError("現在の状態ではこの操作は実行できません");
       return null;
     }
@@ -116,7 +134,7 @@ export function useRequest(id?: string) {
     const { data, errors } = await client.models.Request.update({
       id: request.id,
       status: targetStatus,
-      ...timestampField,
+      ...transitionFields,
     });
 
     if (errors) {
@@ -138,26 +156,34 @@ export function useRequest(id?: string) {
   const resubmitRequest = (): Promise<Request | null> =>
     applyTransition("submitted", { submittedAt: new Date().toISOString() });
 
-  const approveRequest = (): Promise<Request | null> =>
-    applyTransition("approved", { approvedAt: new Date().toISOString() });
+  const approveRequest = (approverSub: string): Promise<Request | null> =>
+    applyTransition("approved", {
+      approvedAt: new Date().toISOString(),
+      approverSub,
+    });
 
   const rejectRequest = (reason: string): Promise<Request | null> => {
     if (!reason) {
+      console.error("Request reject validation error", "却下理由は必須です");
       showError("却下理由は必須です");
       return Promise.resolve(null);
     }
-    if (!requiresReason("rejected")) {
-      return applyTransition("rejected", { rejectedAt: new Date().toISOString() });
-    }
-    return applyTransition("rejected", { rejectedAt: new Date().toISOString() });
+    return applyTransition("rejected", {
+      rejectedAt: new Date().toISOString(),
+      rejectionReason: reason,
+    });
   };
 
   const returnRequest = (reason: string): Promise<Request | null> => {
     if (!reason) {
+      console.error("Request return validation error", "差戻し理由は必須です");
       showError("差戻し理由は必須です");
       return Promise.resolve(null);
     }
-    return applyTransition("returned", { returnedAt: new Date().toISOString() });
+    return applyTransition("returned", {
+      returnedAt: new Date().toISOString(),
+      returnReason: reason,
+    });
   };
 
   return {

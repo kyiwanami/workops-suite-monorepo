@@ -156,6 +156,7 @@ export const handler = async (
       );
     }
 
+    // TODO: AgentCore 経由のレビュー操作では approverSub / rejectionReason / returnReason の保存をまだ扱わない。
     if ((action === "reject" || action === "return") && !event.reason) {
       throw new Error(`${action} では reason が必須です。`);
     }

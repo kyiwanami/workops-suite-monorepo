@@ -57,6 +57,15 @@ vi.mock("@casl/react", () => ({
   }),
 }));
 
+vi.mock("../../../shared/auth/useAuth", () => ({
+  useAuth: () => ({
+    userInfo: {
+      userId: "user-1",
+      departmentCode: "D-001",
+    },
+  }),
+}));
+
 vi.mock("../../../shared/auth/ability", () => ({
   AbilityContext: {},
   Can: ({ children }: { children?: ReactNode | ((allowed: boolean) => ReactNode) }) =>

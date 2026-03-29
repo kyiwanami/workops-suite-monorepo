@@ -5,3 +5,7 @@ amplify_outputs.json
 .env
 *.local
 __pycache__
+
+# develop
+PLAN.md
+HANDOFF.md
