@@ -44,7 +44,7 @@ export const createRequestToolSchema = ToolSchema.fromInline([
         status: {
           type: SchemaDefinitionType.STRING,
           description:
-            "申請ステータス（任意）: draft, submitted, returned, approved, rejected, withdrawn。省略時は draft。",
+            "申請ステータス（任意）: draft, submitted, approved, rejected, withdrawn。省略時は draft。",
         },
         title: {
           type: SchemaDefinitionType.STRING,
@@ -126,7 +126,7 @@ export const listRequestsToolSchema = ToolSchema.fromInline([
         status: {
           type: SchemaDefinitionType.STRING,
           description:
-            "draft|submitted|returned|approved|rejected|withdrawn（省略可）",
+            "draft|submitted|approved|rejected|withdrawn（省略可）",
         },
         requestTypeId: {
           type: SchemaDefinitionType.STRING,
@@ -182,7 +182,7 @@ export const submitRequestToolSchema = ToolSchema.fromInline([
   {
     name: "submit-request",
     description:
-      "申請を提出します。action=submit を指定してください（draft または returned からのみ遷移可能）。",
+      "申請を提出します。action=submit を指定してください（draft からのみ遷移可能）。",
     inputSchema: {
       type: SchemaDefinitionType.OBJECT,
       properties: {
@@ -200,7 +200,7 @@ export const withdrawRequestToolSchema = ToolSchema.fromInline([
   {
     name: "withdraw-request",
     description:
-      "申請を取り下げます。action=withdraw を指定してください（submitted からのみ遷移可能）。",
+      "申請を取り下げます。action=withdraw を指定してください（draft または submitted からのみ遷移可能）。",
     inputSchema: {
       type: SchemaDefinitionType.OBJECT,
       properties: {
@@ -225,6 +225,10 @@ export const approveRequestToolSchema = ToolSchema.fromInline([
         id: {
           type: SchemaDefinitionType.STRING,
           description: "対象申請ID（必須）",
+        },
+        approverSub: {
+          type: SchemaDefinitionType.STRING,
+          description: "承認者の Cognito sub（任意。実行時に自動補完されます）",
         },
       },
       required: ["id"],
@@ -258,7 +262,7 @@ export const returnRequestToolSchema = ToolSchema.fromInline([
   {
     name: "return-request",
     description:
-      "申請を差戻しします。action=return を指定し、reason を必ず指定してください（submitted からのみ遷移可能）。",
+      "申請を差戻しします。action=return を指定し、reason を必ず指定してください。差戻し後は draft に戻ります。",
     inputSchema: {
       type: SchemaDefinitionType.OBJECT,
       properties: {

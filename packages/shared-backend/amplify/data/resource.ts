@@ -299,7 +299,6 @@ const schema = a
     RequestStatusCode: a.enum([
       "draft",
       "submitted",
-      "returned",
       "approved",
       "rejected",
       "withdrawn",

@@ -153,9 +153,6 @@ export function useRequest(id?: string) {
   const withdrawRequest = (): Promise<Request | null> =>
     applyTransition("withdrawn", { withdrawnAt: new Date().toISOString() });
 
-  const resubmitRequest = (): Promise<Request | null> =>
-    applyTransition("submitted", { submittedAt: new Date().toISOString() });
-
   const approveRequest = (approverSub: string): Promise<Request | null> =>
     applyTransition("approved", {
       approvedAt: new Date().toISOString(),
@@ -180,7 +177,7 @@ export function useRequest(id?: string) {
       showError("差戻し理由は必須です");
       return Promise.resolve(null);
     }
-    return applyTransition("returned", {
+    return applyTransition("draft", {
       returnedAt: new Date().toISOString(),
       returnReason: reason,
     });
@@ -193,7 +190,6 @@ export function useRequest(id?: string) {
     updateRequest,
     submitRequest,
     withdrawRequest,
-    resubmitRequest,
     approveRequest,
     rejectRequest,
     returnRequest,

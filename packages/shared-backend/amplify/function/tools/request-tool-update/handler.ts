@@ -31,6 +31,7 @@ interface UpdateRequestCommand {
   id: string;
   patch?: UpdatePatch;
   reason?: string;
+  approverSub?: string;
 }
 
 interface GatewayContext {
@@ -53,15 +54,15 @@ const TARGET_STATUS_BY_ACTION: Record<
   withdraw: "withdrawn",
   approve: "approved",
   reject: "rejected",
-  return: "returned",
+  return: "draft",
 };
 
 const ALLOWED_FROM_STATUS: Record<
   Exclude<UpdateActionType, "update">,
   RequestStatus[]
 > = {
-  submit: ["draft", "returned"],
-  withdraw: ["submitted"],
+  submit: ["draft"],
+  withdraw: ["draft", "submitted"],
   approve: ["submitted"],
   reject: ["submitted"],
   return: ["submitted"],
@@ -156,7 +157,6 @@ export const handler = async (
       );
     }
 
-    // TODO: AgentCore 経由のレビュー操作では approverSub / rejectionReason / returnReason の保存をまだ扱わない。
     if ((action === "reject" || action === "return") && !event.reason) {
       throw new Error(`${action} では reason が必須です。`);
     }
@@ -171,13 +171,19 @@ export const handler = async (
       updateInput.withdrawnAt = now;
     }
     if (action === "approve") {
+      if (!event.approverSub) {
+        throw new Error("approve では approverSub が必須です。");
+      }
       updateInput.approvedAt = now;
+      updateInput.approverSub = event.approverSub;
     }
     if (action === "reject") {
       updateInput.rejectedAt = now;
+      updateInput.rejectionReason = event.reason;
     }
     if (action === "return") {
       updateInput.returnedAt = now;
+      updateInput.returnReason = event.reason;
     }
   }
 

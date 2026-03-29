@@ -128,6 +128,9 @@ def invoke(payload: dict, context) -> dict:
                 tool_input = tu.get("input", {})
                 tool_use_id = tu["toolUseId"]
 
+                if tool_name == "approve-request":
+                    tool_input = {**tool_input, "approverSub": actor_id}
+
                 logger.info("Executing tool", extra={"toolName": tool_name, "toolInput": tool_input})
 
                 try:

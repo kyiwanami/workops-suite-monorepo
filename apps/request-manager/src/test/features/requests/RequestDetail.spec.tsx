@@ -11,7 +11,7 @@ let requestValue:
   | {
       id: string;
       requestTypeId: string;
-      status: "draft" | "submitted" | "returned";
+      status: "draft" | "submitted";
       title: string;
       amount: number;
       description?: string | null;
@@ -31,7 +31,6 @@ let requestValue:
 
 const submitRequest = vi.fn();
 const withdrawRequest = vi.fn();
-const resubmitRequest = vi.fn();
 const approveRequest = vi.fn();
 const rejectRequest = vi.fn();
 const returnRequest = vi.fn();
@@ -84,7 +83,6 @@ vi.mock("../../../features/requests/hooks/useRequest", () => ({
     loading: requestLoading,
     submitRequest,
     withdrawRequest,
-    resubmitRequest,
     approveRequest,
     rejectRequest,
     returnRequest,

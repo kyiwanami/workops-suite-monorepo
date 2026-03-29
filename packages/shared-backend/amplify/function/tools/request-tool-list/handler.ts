@@ -15,7 +15,6 @@ const MAX_FETCH_PAGES = 3;
 type RequestStatusCode =
   | "draft"
   | "submitted"
-  | "returned"
   | "approved"
   | "rejected"
   | "withdrawn";

@@ -2,6 +2,8 @@ import type { Schema } from "@workops/data-schema";
 
 export type RequestStatusCode = Schema["RequestStatusCode"]["type"];
 
+export type RequestAction = "submit" | "withdraw" | "approve" | "reject" | "return";
+
 export type ApprovalEntry = {
   approverSub: string;
   statusCode: RequestStatusCode;
@@ -12,8 +14,7 @@ export type ApprovalEntry = {
 // 許可される状態遷移テーブル
 const TRANSITIONS: Record<RequestStatusCode, ReadonlySet<RequestStatusCode>> = {
   draft: new Set(["submitted", "withdrawn"]),
-  submitted: new Set(["approved", "rejected", "returned"]),
-  returned: new Set(["submitted", "withdrawn"]),
+  submitted: new Set(["approved", "rejected", "withdrawn", "draft"]),
   approved: new Set(),
   rejected: new Set(),
   withdrawn: new Set(),
@@ -26,9 +27,9 @@ export function isTransitionAllowed(
   return TRANSITIONS[from].has(to);
 }
 
-// rejected / returned は理由必須
-export function requiresReason(to: RequestStatusCode): boolean {
-  return to === "rejected" || to === "returned";
+// reason が必要なのは却下と差戻しの操作だけ
+export function requiresReason(action: RequestAction): boolean {
+  return action === "reject" || action === "return";
 }
 
 export function isTerminalState(status: RequestStatusCode): boolean {

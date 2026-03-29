@@ -33,7 +33,6 @@ export function RequestDetail() {
     loading,
     submitRequest,
     withdrawRequest,
-    resubmitRequest,
     approveRequest,
     rejectRequest,
     returnRequest,
@@ -44,7 +43,7 @@ export function RequestDetail() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  type ConfirmAction = "submit" | "withdraw" | "resubmit" | "approve";
+  type ConfirmAction = "submit" | "withdraw" | "approve";
   type ReasonAction = "reject" | "return";
 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState<{
@@ -91,16 +90,11 @@ export function RequestDetail() {
   const canRejectRequestAbility = ability.can("reject", request);
   const canReturnRequestAbility = ability.can("return", request);
 
-  const canEdit =
-    canUpdateRequest && (request.status === "draft" || request.status === "returned");
-  const canSubmit =
-    canSubmitRequestAbility && (request.status === "draft" || request.status === "returned");
+  const canEdit = canUpdateRequest && request.status === "draft";
+  const canSubmit = canSubmitRequestAbility && request.status === "draft";
   const canWithdraw =
     canWithdrawRequestAbility &&
-    (request.status === "draft" ||
-      request.status === "returned" ||
-      request.status === "submitted");
-  const canResubmit = canSubmitRequestAbility && request.status === "returned";
+    (request.status === "draft" || request.status === "submitted");
   const canApprove = canApproveRequestAbility && request.status === "submitted";
   const canReject = canRejectRequestAbility && request.status === "submitted";
   const canReturn = canReturnRequestAbility && request.status === "submitted";
@@ -112,8 +106,6 @@ export function RequestDetail() {
       result = await submitRequest();
     } else if (action === "withdraw") {
       result = await withdrawRequest();
-    } else if (action === "resubmit") {
-      result = await resubmitRequest();
     } else if (action === "approve") {
       if (!userInfo.userId) {
         console.error("Request approve validation error", "ユーザー情報が取得できません");
@@ -126,7 +118,13 @@ export function RequestDetail() {
     }
     setActionLoading(false);
     if (result) {
-      showSuccess(`申請を${action === "submit" ? "提出" : action === "withdraw" ? "取り下げ" : action === "resubmit" ? "再提出" : "承認"}しました`);
+      const actionLabel =
+        action === "submit"
+          ? "提出"
+          : action === "withdraw"
+            ? "取り下げ"
+            : "承認";
+      showSuccess(`申請を${actionLabel}しました`);
     }
     setConfirmDialogOpen({ open: false });
   };
@@ -174,19 +172,16 @@ export function RequestDetail() {
                   編集
                 </Button>
               )}
-              {(canSubmit || canResubmit) && (
+              {canSubmit && (
                 <Button
                   size="small"
                   variant="contained"
                   onClick={() =>
-                    setConfirmDialogOpen({
-                      open: true,
-                      action: canResubmit ? "resubmit" : "submit",
-                    })
+                    setConfirmDialogOpen({ open: true, action: "submit" })
                   }
                   disabled={actionLoading}
                 >
-                  {canResubmit ? "再提出" : "提出"}
+                  提出
                 </Button>
               )}
               {canWithdraw && (
@@ -330,6 +325,16 @@ export function RequestDetail() {
               </Typography>
             </Stack>
           )}
+          {request.returnedAt && (
+            <Stack spacing={0.5}>
+              <Typography variant="caption" color="text.secondary">
+                差戻し日時
+              </Typography>
+              <Typography variant="body2">
+                {new Date(request.returnedAt).toLocaleString("ja-JP")}
+              </Typography>
+            </Stack>
+          )}
         </Stack>
       </Card>
 
@@ -338,24 +343,20 @@ export function RequestDetail() {
       )}
 
       <ConfirmDialog
-        open={confirmDialogOpen.open && (canSubmit || canWithdraw || canResubmit || canApprove)}
+        open={confirmDialogOpen.open && (canSubmit || canWithdraw || canApprove)}
         title={
           confirmDialogOpen.action === "submit"
             ? "申請を提出しますか？"
             : confirmDialogOpen.action === "withdraw"
               ? "申請を取り下げますか？"
-              : confirmDialogOpen.action === "resubmit"
-                ? "申請を再提出しますか？"
-                : "申請を承認しますか？"
+              : "申請を承認しますか？"
         }
         message={
           confirmDialogOpen.action === "submit"
             ? "提出後は内容が変更できません。よろしいですか？"
             : confirmDialogOpen.action === "withdraw"
               ? "この操作は取り消せません。よろしいですか？"
-              : confirmDialogOpen.action === "resubmit"
-                ? "申請を再度提出します。よろしいですか？"
-                : "この申請を承認します。よろしいですか？"
+              : "この申請を承認します。よろしいですか？"
         }
         onConfirm={() =>
           handleConfirmAction(confirmDialogOpen.action || "submit")
@@ -363,7 +364,7 @@ export function RequestDetail() {
         onCancel={() => setConfirmDialogOpen({ open: false })}
         loading={actionLoading}
         confirmLabel={
-          confirmDialogOpen.action === "submit" || confirmDialogOpen.action === "resubmit"
+          confirmDialogOpen.action === "submit"
             ? "提出"
             : confirmDialogOpen.action === "withdraw"
               ? "取り下げ"

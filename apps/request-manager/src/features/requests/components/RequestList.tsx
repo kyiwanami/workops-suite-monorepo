@@ -109,7 +109,6 @@ export function RequestList() {
             <MenuItem value="all">すべての状態</MenuItem>
             <MenuItem value="draft">下書き</MenuItem>
             <MenuItem value="submitted">申請中</MenuItem>
-            <MenuItem value="returned">差戻し</MenuItem>
             <MenuItem value="approved">承認済</MenuItem>
             <MenuItem value="rejected">却下</MenuItem>
             <MenuItem value="withdrawn">取下げ</MenuItem>
