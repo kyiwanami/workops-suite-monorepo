@@ -12,6 +12,7 @@ vi.mock(
   () => ({
     useDepartmentManagement: () => ({
       createDepartment,
+      updateDepartment: vi.fn(async () => true),
     }),
   })
 );

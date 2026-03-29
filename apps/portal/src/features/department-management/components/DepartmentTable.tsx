@@ -12,13 +12,18 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { DeleteOutline as DeleteIcon } from "@mui/icons-material";
+import {
+  DeleteOutline as DeleteIcon,
+  EditOutlined as EditIcon,
+} from "@mui/icons-material";
 import { type DepartmentType } from "../types";
 
 interface DepartmentTableProps {
   departments: DepartmentType[];
   loading: boolean;
   onDeleteRequest: (dept: DepartmentType) => void;
+  onEditRequest: (dept: DepartmentType) => void;
+  canEdit: boolean;
   canDelete: boolean;
 }
 
@@ -26,6 +31,8 @@ export const DepartmentTable = ({
   departments,
   loading,
   onDeleteRequest,
+  onEditRequest,
+  canEdit,
   canDelete,
 }: DepartmentTableProps) => {
   if (loading) {
@@ -108,17 +115,32 @@ export const DepartmentTable = ({
                 </Typography>
               </TableCell>
               <TableCell align="right">
-                {canDelete && (
-                  <Tooltip title="削除" placement="top">
-                    <IconButton
-                      size="small"
-                      onClick={() => onDeleteRequest(dept)}
-                      sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                )}
+                <Box sx={{ display: "inline-flex", gap: 0.5 }}>
+                  {canEdit && (
+                    <Tooltip title="編集" placement="top">
+                      <IconButton
+                        size="small"
+                        aria-label="編集"
+                        onClick={() => onEditRequest(dept)}
+                        sx={{ color: "text.disabled", "&:hover": { color: "primary.main" } }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  {canDelete && (
+                    <Tooltip title="削除" placement="top">
+                      <IconButton
+                        size="small"
+                        aria-label="削除"
+                        onClick={() => onDeleteRequest(dept)}
+                        sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
               </TableCell>
             </TableRow>
           ))}

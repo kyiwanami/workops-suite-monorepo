@@ -20,6 +20,8 @@ describe("DepartmentTable", () => {
         departments={[]}
         loading={true}
         onDeleteRequest={vi.fn()}
+        onEditRequest={vi.fn()}
+        canEdit={false}
         canDelete={false}
       />
     );
@@ -33,6 +35,8 @@ describe("DepartmentTable", () => {
         departments={[]}
         loading={false}
         onDeleteRequest={vi.fn()}
+        onEditRequest={vi.fn()}
+        canEdit={false}
         canDelete={false}
       />
     );
@@ -48,6 +52,8 @@ describe("DepartmentTable", () => {
         departments={[sampleDepartment]}
         loading={false}
         onDeleteRequest={onDeleteRequest}
+        onEditRequest={vi.fn()}
+        canEdit={true}
         canDelete={true}
       />
     );
@@ -57,7 +63,7 @@ describe("DepartmentTable", () => {
     expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("北日本")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(screen.getByRole("button", { name: "削除" }));
 
     expect(onDeleteRequest).toHaveBeenCalledWith(sampleDepartment);
   });

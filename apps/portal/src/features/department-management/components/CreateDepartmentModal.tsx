@@ -16,7 +16,11 @@ import { NumberField } from "@base-ui/react/number-field";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDepartmentManagement } from "../hooks/useDepartmentManagement";
-import { type CreateDepartmentInput } from "../types";
+import {
+  type DepartmentType,
+  type CreateDepartmentInput,
+  type UpdateDepartmentInput,
+} from "../types";
 import {
   createDepartmentFormSchema,
   type CreateDepartmentFormValues,
@@ -25,58 +29,84 @@ import {
 interface CreateDepartmentModalProps {
   open: boolean;
   onClose: (success?: boolean) => void;
+  department?: DepartmentType | null;
 }
 
-const defaultValues = {
-  code: "",
-  name: "",
-  sortOrder: undefined,
-  notes: "",
-} satisfies CreateDepartmentFormValues;
+const createFormValues = (
+  department?: DepartmentType | null
+): CreateDepartmentFormValues => ({
+  code: department?.code ?? "",
+  name: department?.name ?? "",
+  sortOrder: department?.sortOrder ?? undefined,
+  notes: department?.notes ?? "",
+});
 
 export const CreateDepartmentModal = ({
   open,
   onClose,
+  department,
 }: CreateDepartmentModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { createDepartment } = useDepartmentManagement();
+  const { createDepartment, updateDepartment } = useDepartmentManagement();
+  const isEditMode = department != null;
 
   const { control, handleSubmit, reset } = useForm<CreateDepartmentFormValues>({
     resolver: zodResolver(createDepartmentFormSchema),
     mode: "onSubmit",
     reValidateMode: "onSubmit",
-    defaultValues,
+    defaultValues: createFormValues(department),
   });
 
   useEffect(() => {
     if (open) {
-      reset(defaultValues);
+      reset(createFormValues(department));
+      return;
     }
-  }, [open]);
+
+    reset(createFormValues());
+  }, [open, department]);
 
   const handleClose = () => {
-    reset(defaultValues);
+    reset(createFormValues());
     onClose(false);
   };
 
   const onSubmit = async (values: CreateDepartmentFormValues) => {
     setIsSubmitting(true);
     try {
-      const input: CreateDepartmentInput = {
+      const createInput: CreateDepartmentInput = {
         code: values.code,
         name: values.name,
         sortOrder: values.sortOrder,
         notes: values.notes,
       };
-      const result = await createDepartment(input);
+      const updateInput: UpdateDepartmentInput = {
+        code: department?.code ?? "",
+        name: values.name,
+        sortOrder: values.sortOrder ?? null,
+        notes: values.notes,
+      };
+
+      const result =
+        isEditMode && department
+          ? await updateDepartment(updateInput)
+          : await createDepartment(createInput);
+
       if (result) {
-        reset(defaultValues);
+        reset(createFormValues());
         onClose(true);
       }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const dialogTitle = isEditMode ? "部署を編集" : "新規部署を作成";
+  const submitLabel = isEditMode ? "更新する" : "作成する";
+  const submittingLabel = isEditMode ? "更新中..." : "作成中...";
+  const noticeText = isEditMode
+    ? "部署コードは変更できません。更新対象は部署名・表示順・備考です。"
+    : "部署コードは作成後に変更できません。慎重に設定してください。";
 
   return (
     <Dialog
@@ -88,7 +118,7 @@ export const CreateDepartmentModal = ({
     >
       <DialogTitle sx={{ pb: 1 }}>
         <Typography variant="h6" fontWeight={600}>
-          新規部署を作成
+          {dialogTitle}
         </Typography>
       </DialogTitle>
       <Divider />
@@ -99,7 +129,7 @@ export const CreateDepartmentModal = ({
             variant="outlined"
             sx={{ borderRadius: 2, fontSize: "0.8rem" }}
           >
-            部署コードは作成後に変更できません。慎重に設定してください。
+            {noticeText}
           </Alert>
 
           <Controller
@@ -115,7 +145,7 @@ export const CreateDepartmentModal = ({
                 required
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isEditMode}
                 inputProps={{ style: { fontFamily: "monospace", fontWeight: 600 } }}
               />
             )}
@@ -220,7 +250,7 @@ export const CreateDepartmentModal = ({
           }
           sx={{ borderRadius: 2, minWidth: 120 }}
         >
-          {isSubmitting ? "作成中..." : "作成する"}
+          {isSubmitting ? submittingLabel : submitLabel}
         </Button>
       </DialogActions>
     </Dialog>

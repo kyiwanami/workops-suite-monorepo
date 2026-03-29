@@ -2,7 +2,11 @@ import { useState, useCallback } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@workops/data-schema";
 import { useNotification } from "../../../shared/notification";
-import { type DepartmentType, type CreateDepartmentInput } from "../types";
+import {
+  type DepartmentType,
+  type CreateDepartmentInput,
+  type UpdateDepartmentInput,
+} from "../types";
 
 const client = generateClient<Schema>();
 
@@ -53,6 +57,35 @@ export const useDepartmentManagement = () => {
     [showSuccess, showError]
   );
 
+  const updateDepartment = useCallback(
+    async (input: UpdateDepartmentInput): Promise<DepartmentType | null> => {
+      setLoading(true);
+      const { data, errors } = await client.models.Department.update({
+        code: input.code,
+        name: input.name,
+        sortOrder: input.sortOrder,
+        notes: input.notes,
+      });
+      if (errors) {
+        console.error("Department update error", errors);
+        showError("部署更新に失敗しました");
+        setLoading(false);
+        return null;
+      }
+
+      if (data) {
+        showSuccess(`部署「${data.name}」を更新しました`);
+        setLoading(false);
+        return data;
+      }
+
+      showError("部署更新に失敗しました");
+      setLoading(false);
+      return null;
+    },
+    [showSuccess, showError]
+  );
+
   const deleteDepartment = useCallback(
     async (code: string): Promise<boolean> => {
       setLoading(true);
@@ -82,6 +115,7 @@ export const useDepartmentManagement = () => {
     loading,
     fetchDepartments,
     createDepartment,
+    updateDepartment,
     deleteDepartment,
   };
 };

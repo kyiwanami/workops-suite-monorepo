@@ -25,6 +25,8 @@ const DepartmentManagement = () => {
   const { departments, loading, fetchDepartments, deleteDepartment } =
     useDepartmentManagement();
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] =
+    useState<DepartmentType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DepartmentType | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -32,9 +34,20 @@ const DepartmentManagement = () => {
     fetchDepartments();
   }, [fetchDepartments]);
 
-  const handleCreateClose = (success?: boolean) => {
+  const handleModalClose = (success?: boolean) => {
     setCreateModalOpen(false);
+    setEditingDepartment(null);
     if (success) fetchDepartments();
+  };
+
+  const handleCreateRequest = () => {
+    setEditingDepartment(null);
+    setCreateModalOpen(true);
+  };
+
+  const handleEditRequest = (dept: DepartmentType) => {
+    setEditingDepartment(dept);
+    setCreateModalOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -85,7 +98,7 @@ const DepartmentManagement = () => {
                     variant="contained"
                     disableElevation
                     startIcon={<AddIcon />}
-                    onClick={() => setCreateModalOpen(true)}
+                    onClick={handleCreateRequest}
                     sx={{ borderRadius: 2, textTransform: "none" }}
                   >
                     新規作成
@@ -99,14 +112,17 @@ const DepartmentManagement = () => {
               departments={departments}
               loading={loading}
               onDeleteRequest={setDeleteTarget}
+              onEditRequest={handleEditRequest}
+              canEdit={allowed}
               canDelete={allowed}
             />
 
-            {/* 新規作成モーダル */}
+            {/* 作成/編集モーダル */}
             {allowed && (
               <CreateDepartmentModal
                 open={createModalOpen}
-                onClose={handleCreateClose}
+                onClose={handleModalClose}
+                department={editingDepartment}
               />
             )}
 

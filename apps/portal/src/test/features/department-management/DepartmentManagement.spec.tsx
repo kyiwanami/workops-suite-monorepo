@@ -45,6 +45,7 @@ vi.mock(
       departments: [sampleDepartment],
       loading: false,
       fetchDepartments,
+      updateDepartment: vi.fn(async () => sampleDepartment),
       deleteDepartment,
     }),
   })
