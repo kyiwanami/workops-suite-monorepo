@@ -146,15 +146,7 @@ export function RequestFormDialog({
     }
 
     let submitted = null;
-    if (id && request) {
-      submitted = await submitRequest();
-    } else {
-      submitted = await updateRequest({
-        id: stored.id,
-        status: "submitted",
-        submittedAt: new Date().toISOString(),
-      });
-    }
+    submitted = await submitRequest();
 
     if (submitted) {
       showSuccess("申請を提出しました");

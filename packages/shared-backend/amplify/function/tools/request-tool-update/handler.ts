@@ -104,6 +104,7 @@ export const handler = async (
   context: GatewayContext,
 ) => {
   const action = resolveAction(context);
+  // TODO: 監査ログは現時点で UI 経路のみ記録する。
 
   // まず最新の申請を取得して、状態遷移の可否を判定する。
   const { data: currentRequest, errors: getErrors } = await client.models.Request.get({

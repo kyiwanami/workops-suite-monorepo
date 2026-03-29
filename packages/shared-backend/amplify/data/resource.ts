@@ -304,6 +304,18 @@ const schema = a
       "withdrawn",
     ]),
 
+    // 申請監査アクション
+    RequestAuditAction: a.enum([
+      "create",
+      "update",
+      "submit",
+      "withdraw",
+      "approve",
+      "reject",
+      "return",
+      "delete",
+    ]),
+
     // 申請種別マスタ
     RequestType: a
       .model({
@@ -355,6 +367,20 @@ const schema = a
         index("requesterSub").sortKeys(["status"]),
         index("requestTypeId"),
       ]),
+
+    // 申請監査ログ
+    AuditLog: a
+      .model({
+        requestId: a.id().required(),
+        action: a.ref("RequestAuditAction").required(),
+        performedBy: a.string().required(),
+        previousStatus: a.ref("RequestStatusCode"),
+        newStatus: a.ref("RequestStatusCode"),
+        reason: a.string(),
+        performedAt: a.datetime().required(),
+      })
+      .authorization((allow) => [allow.authenticated()])
+      .secondaryIndexes((index) => [index("requestId").sortKeys(["performedAt"])]),
   })
   .authorization((allow) => [
     allow.authenticated(),

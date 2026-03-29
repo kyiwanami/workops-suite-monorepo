@@ -24,16 +24,20 @@ export const buildAppAbility = (userInfo: UserInfo): AppAbility => {
     can("withdraw", "Request");
   }
 
-  // manager 以上: approve, reject, return (セルフ承認禁止), delete, manage RequestType
+  // manager 以上: approve, reject, return (セルフ承認禁止), manage RequestType
   if (userInfo.role === "manager" || userInfo.isGlobalAdmin) {
     can("approve", "Request", { requesterSub: { $ne: userInfo.userId ?? "" } });
     can("reject", "Request", { requesterSub: { $ne: userInfo.userId ?? "" } });
     can("return", "Request", { requesterSub: { $ne: userInfo.userId ?? "" } });
-    can("delete", "Request");
     can("manage", "RequestType");
     can("read", "RequestTypePage");
     can("read", "RequestTypeMenu");
   }
+
+  can("delete", "Request", {
+    requesterSub: userInfo.userId ?? "",
+    status: "draft",
+  });
 
   return build();
 };

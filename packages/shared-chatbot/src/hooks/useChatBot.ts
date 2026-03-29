@@ -210,6 +210,7 @@ export function useChatBot(sessionId: string) {
     console.log("  Requester Sub:", requesterSub);
     console.log("  Department ID:", departmentId);
 
+    // TODO: 監査ログは現時点で UI 経路のみ記録し、チャット経由の操作には付与しない。
     // 申請作成に必要なユーザー文脈をqueryへ連結して送信する
     const queryWithUserContext = `${query}
 

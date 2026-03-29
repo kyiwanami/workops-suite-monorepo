@@ -36,6 +36,7 @@ export function RequestDetail() {
     approveRequest,
     rejectRequest,
     returnRequest,
+    deleteRequest,
   } = useRequest(id);
   const { userInfo } = useAuth();
   const { requestTypes } = useRequestTypes();
@@ -43,7 +44,7 @@ export function RequestDetail() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  type ConfirmAction = "submit" | "withdraw" | "approve";
+  type ConfirmAction = "submit" | "withdraw" | "approve" | "delete";
   type ReasonAction = "reject" | "return";
 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState<{
@@ -89,6 +90,7 @@ export function RequestDetail() {
   const canApproveRequestAbility = ability.can("approve", request);
   const canRejectRequestAbility = ability.can("reject", request);
   const canReturnRequestAbility = ability.can("return", request);
+  const canDeleteRequest = ability.can("delete", request);
 
   const canEdit = canUpdateRequest && request.status === "draft";
   const canSubmit = canSubmitRequestAbility && request.status === "draft";
@@ -98,6 +100,12 @@ export function RequestDetail() {
   const canApprove = canApproveRequestAbility && request.status === "submitted";
   const canReject = canRejectRequestAbility && request.status === "submitted";
   const canReturn = canReturnRequestAbility && request.status === "submitted";
+  const confirmDialogVisible =
+    confirmDialogOpen.open &&
+    ((confirmDialogOpen.action === "submit" && canSubmit) ||
+      (confirmDialogOpen.action === "withdraw" && canWithdraw) ||
+      (confirmDialogOpen.action === "approve" && canApprove) ||
+      (confirmDialogOpen.action === "delete" && canDeleteRequest));
 
   const handleConfirmAction = async (action: ConfirmAction) => {
     setActionLoading(true);
@@ -115,9 +123,25 @@ export function RequestDetail() {
         return;
       }
       result = await approveRequest(userInfo.userId);
+    } else if (action === "delete") {
+      if (!userInfo.userId) {
+        console.error("Request delete validation error", "ユーザー情報が取得できません");
+        showError("ユーザー情報が取得できません");
+        setActionLoading(false);
+        setConfirmDialogOpen({ open: false });
+        return;
+      }
+      result = await deleteRequest(userInfo.userId);
     }
     setActionLoading(false);
     if (result) {
+      if (action === "delete") {
+        showSuccess("申請を削除しました");
+        setConfirmDialogOpen({ open: false });
+        navigate("/requests");
+        return;
+      }
+
       const actionLabel =
         action === "submit"
           ? "提出"
@@ -170,6 +194,19 @@ export function RequestDetail() {
                   onClick={() => setEditOpen(true)}
                 >
                   編集
+                </Button>
+              )}
+              {canDeleteRequest && (
+                <Button
+                  size="small"
+                  color="error"
+                  variant="contained"
+                  onClick={() =>
+                    setConfirmDialogOpen({ open: true, action: "delete" })
+                  }
+                  disabled={actionLoading}
+                >
+                  削除
                 </Button>
               )}
               {canSubmit && (
@@ -343,20 +380,24 @@ export function RequestDetail() {
       )}
 
       <ConfirmDialog
-        open={confirmDialogOpen.open && (canSubmit || canWithdraw || canApprove)}
+        open={confirmDialogVisible}
         title={
           confirmDialogOpen.action === "submit"
             ? "申請を提出しますか？"
             : confirmDialogOpen.action === "withdraw"
               ? "申請を取り下げますか？"
-              : "申請を承認しますか？"
+              : confirmDialogOpen.action === "approve"
+                ? "申請を承認しますか？"
+                : "申請を削除しますか？"
         }
         message={
           confirmDialogOpen.action === "submit"
             ? "提出後は内容が変更できません。よろしいですか？"
             : confirmDialogOpen.action === "withdraw"
               ? "この操作は取り消せません。よろしいですか？"
-              : "この申請を承認します。よろしいですか？"
+              : confirmDialogOpen.action === "approve"
+                ? "この申請を承認します。よろしいですか？"
+                : "下書きの申請は削除すると元に戻せません。よろしいですか？"
         }
         onConfirm={() =>
           handleConfirmAction(confirmDialogOpen.action || "submit")
@@ -368,7 +409,9 @@ export function RequestDetail() {
             ? "提出"
             : confirmDialogOpen.action === "withdraw"
               ? "取り下げ"
-              : "承認"
+              : confirmDialogOpen.action === "approve"
+                ? "承認"
+                : "削除"
         }
       />
 
