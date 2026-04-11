@@ -25,7 +25,6 @@ type DrawerItem = PublicDrawerItem | ProtectedDrawerItem;
 
 const drawerItems: DrawerItem[] = [
   { label: "ダッシュボード", path: "/dashboard" },
-  { label: "ToDo", path: "/todos" },
   {
     label: "ユーザー管理",
     path: "/user-management",

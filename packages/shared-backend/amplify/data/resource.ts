@@ -186,12 +186,6 @@ const schema = a
     // =============================================
     // Portal Models
     // =============================================
-    Todo: a
-      .model({
-        content: a.string(),
-      })
-      .authorization((allow) => [allow.authenticated()]),
-
     Project: a
       .model({
         projectId: a.id().required(),

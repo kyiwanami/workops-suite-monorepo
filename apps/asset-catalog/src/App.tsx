@@ -26,7 +26,7 @@ const AuthorizedApp = () => {
         projectId: "@workops-suite/asset-catalog",
         agentCoreUrl,
         userInfo,
-        title: "Todo チャット",
+        title: "資産カタログチャット",
       }}
     >
       <AbilityContext.Provider value={ability}>

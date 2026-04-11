@@ -66,7 +66,7 @@ graph TB
     end
 
     subgraph Database["データベース"]
-        DynamoDB["DynamoDB<br/>(Department, Project, Page, Todo)"]
+        DynamoDB["DynamoDB<br/>(Department, Project, Page)"]
         Streams["DynamoDB Streams"]
     end
 
@@ -122,7 +122,6 @@ src/
 │   │   ├── DepartmentManagement.tsx
 │   │   ├── components/
 │   │   └── hooks/
-│   └── todo/                  # 参考実装
 ├── shared/                    # 共有コンポーネント
 │   ├── auth/          # 認証・認可（CASL）
 │   ├── contexts/      # React Context

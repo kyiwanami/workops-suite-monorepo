@@ -228,12 +228,6 @@ type Page {
   relativePath: String
   iconName: String
 }
-
-type Todo {
-  id: ID!
-  title: String!
-  completed: Boolean
-}
 ```
 
 ### Lambda 関数の役割分担
