@@ -1,17 +1,27 @@
 import { useState } from "react";
 import { Box, Toolbar } from "@mui/material";
 import { Outlet, useLocation } from "react-router-dom";
-import { AppBarNavigation } from "./AppBar";
+import { useAuth } from "@workops-suite/shared-auth";
+import { AppBarNavigation } from "@workops-suite/shared-navigation";
 import { NavigationDrawer } from "./Drawer";
+
+const appTitle = "ポータル";
 
 export default function AppShell() {
   const location = useLocation();
+  const { userInfo, signOut } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleDrawer = () => setDrawerOpen((prev) => !prev);
+  const displayName = userInfo?.username;
 
   return (
     <Box sx={{ display: "flex" }}>
-      <AppBarNavigation onToggleDrawer={toggleDrawer} />
+      <AppBarNavigation
+        title={appTitle}
+        displayName={displayName}
+        onToggleDrawer={toggleDrawer}
+        onSignOut={signOut}
+      />
       <NavigationDrawer
         currentPath={location.pathname}
         open={drawerOpen}

@@ -1,0 +1,14 @@
+{
+  "name": "@workops-suite/shared-navigation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "@mui/icons-material": "^7.3.6",
+    "@mui/material": "^7.3.6",
+    "react": "^18.2.0"
+  }
+}
