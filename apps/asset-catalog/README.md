@@ -59,7 +59,7 @@ IT機器などの企業資産を部署単位で管理し、Amazon Bedrock AgentC
 graph TB
     subgraph Frontend["フロントエンド"]
         User["👤 ユーザー"]
-        React["React App<br/>(Vite + MUI)"]
+        React["資産カタログ<br/>(Vite + MUI)"]
     end
 
     subgraph Auth["認証"]

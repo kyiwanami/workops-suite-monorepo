@@ -53,7 +53,7 @@ Amazon Cognito ベースのシングルサインオン（SSO）基盤。複数�
 graph TB
     subgraph Frontend["フロントエンド"]
         User["👤 ユーザー"]
-        React["React App<br/>(Vite + MUI)"]
+        React["ポータル<br/>(Vite + MUI)"]
     end
 
     subgraph Auth["認証"]

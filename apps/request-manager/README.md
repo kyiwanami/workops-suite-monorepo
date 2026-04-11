@@ -66,7 +66,7 @@
 graph TB
     subgraph Frontend["フロントエンド"]
         User["👤 ユーザー"]
-        React["React App<br/>(Vite + MUI)"]
+        React["申請マネージャー<br/>(Vite + MUI)"]
     end
 
     subgraph Auth["認証"]
