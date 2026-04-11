@@ -1,9 +1,11 @@
 import { BrowserRouter } from "react-router-dom";
 import { GlobalStyles } from "@mui/material";
 import { useMemo } from "react";
-import { NotificationProvider } from "./shared/notification";
-import { AuthProvider } from "./shared/auth/AuthProvider";
-import { useAuth } from "./shared/auth/useAuth";
+import {
+  AuthProvider,
+  useAuth,
+} from "@workops-suite/shared-auth";
+import { NotificationProvider } from "@workops-suite/shared-notification";
 import { AbilityContext, buildAppAbility } from "./shared/auth/ability";
 import AppRoutes from "./app/Routes";
 import { ChatBotProvider, ChatWidget } from "@workops-suite/shared-chatbot";

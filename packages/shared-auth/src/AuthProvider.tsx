@@ -3,11 +3,11 @@ import {
   getCurrentUser,
   fetchAuthSession,
   signInWithRedirect,
+  signOut as cognitoSignOut,
 } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";
+import { useNotification } from "@workops-suite/shared-notification";
 import { AuthContext, type UserInfo, getWorkopsRoleValues } from "./types";
-import { useNotification } from "../notification";
-import { signOut as cognitoSignOut } from "aws-amplify/auth";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -47,8 +47,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const rawRole = idTokenPayload?.["workops_role"];
       const roleValues = getWorkopsRoleValues();
       const role = roleValues.find((value) => value === rawRole);
-      const departmentCode = idTokenPayload?.["workops_department_code"] as string | undefined;
-      const departmentName = idTokenPayload?.["workops_department_name"] as string | undefined;
+      const departmentCode = idTokenPayload?.[
+        "workops_department_code"
+      ] as string | undefined;
+      const departmentName = idTokenPayload?.[
+        "workops_department_name"
+      ] as string | undefined;
       const isGlobalAdmin = idTokenPayload?.["workops_is_global_admin"] === "true";
 
       setUserInfo({
@@ -105,8 +109,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // 画面遷移するので通知は見えないかもしれないが呼び出しておく
       showSuccess("ログアウトしました");
     } catch (error) {
-      const errorMessage = `ログアウトに失敗しました: ${error instanceof Error ? error.message : String(error)
-        }`;
+      const errorMessage = `ログアウトに失敗しました: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
       setError(errorMessage);
 
       // ログアウトエラー通知

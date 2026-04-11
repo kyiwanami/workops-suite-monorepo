@@ -1,6 +1,6 @@
 import { AppBar, Toolbar, Typography, IconButton, Stack } from "@mui/material";
 import { Theme } from "@mui/material/styles";
-import { useAuth } from "../shared/auth/useAuth";
+import { useAuth } from "@workops-suite/shared-auth";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SettingsIcon from "@mui/icons-material/Settings";

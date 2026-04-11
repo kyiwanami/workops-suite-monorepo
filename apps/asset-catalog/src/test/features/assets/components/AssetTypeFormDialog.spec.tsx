@@ -26,7 +26,7 @@ vi.mock("../../../../features/assets/hooks/useAssetType", () => ({
   }),
 }));
 
-vi.mock("../../../../shared/notification", () => ({
+vi.mock("@workops-suite/shared-notification", () => ({
   useNotification: () => ({
     showError: state.showError,
     showSuccess: state.showSuccess,

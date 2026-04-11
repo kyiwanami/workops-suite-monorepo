@@ -7,6 +7,14 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      "@workops-suite/shared-auth": resolve(
+        __dirname,
+        "../../packages/shared-auth/src/index.ts"
+      ),
+      "@workops-suite/shared-notification": resolve(
+        __dirname,
+        "../../packages/shared-notification/src/index.ts"
+      ),
       "@workops/data-schema": resolve(
         __dirname,
         "../../packages/shared-backend/amplify/data/resource"

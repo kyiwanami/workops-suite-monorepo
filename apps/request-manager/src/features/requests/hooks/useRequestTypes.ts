@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@workops/data-schema";
-import { useNotification } from "../../../shared/notification";
+import { useNotification } from "@workops-suite/shared-notification";
 
 const client = generateClient<Schema>();
 

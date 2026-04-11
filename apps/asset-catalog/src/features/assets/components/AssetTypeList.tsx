@@ -26,7 +26,7 @@ import { useAssetTypes } from "../hooks/useAssetTypes";
 import { useAssetType, type AssetType } from "../hooks/useAssetType";
 import { AssetTypeFormDialog } from "./AssetTypeFormDialog";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
-import { useNotification } from "../../../shared/notification";
+import { useNotification } from "@workops-suite/shared-notification";
 import { Can } from "../../../shared/auth/ability";
 
 type DeleteTarget = {

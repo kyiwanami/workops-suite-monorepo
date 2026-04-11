@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@workops/data-schema";
-import { useNotification } from "../../../shared/notification";
+import { useNotification } from "@workops-suite/shared-notification";
 import {
   type CognitoUserType,
   type UserDetailType,

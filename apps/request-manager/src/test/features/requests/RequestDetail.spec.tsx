@@ -56,7 +56,7 @@ vi.mock("@casl/react", () => ({
   }),
 }));
 
-vi.mock("../../../shared/auth/useAuth", () => ({
+vi.mock("@workops-suite/shared-auth", () => ({
   useAuth: () => ({
     userInfo: {
       userId: "user-1",
@@ -71,7 +71,7 @@ vi.mock("../../../shared/auth/ability", () => ({
     typeof children === "function" ? <>{children(true)}</> : <>{children}</>,
 }));
 
-vi.mock("../../../shared/notification", () => ({
+vi.mock("@workops-suite/shared-notification", () => ({
   useNotification: () => ({
     showSuccess,
   }),

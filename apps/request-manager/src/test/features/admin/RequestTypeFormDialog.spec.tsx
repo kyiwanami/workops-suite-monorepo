@@ -11,7 +11,7 @@ const getRequestType = vi.fn();
 const createRequestType = vi.fn();
 const updateRequestType = vi.fn();
 
-vi.mock("../../../shared/notification", () => ({
+vi.mock("@workops-suite/shared-notification", () => ({
   useNotification: () => ({
     showError,
     showSuccess,

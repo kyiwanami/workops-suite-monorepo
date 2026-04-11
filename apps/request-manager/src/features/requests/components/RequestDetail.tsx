@@ -20,8 +20,8 @@ import { isTerminalState } from "../workflow";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
 import { ReasonDialog } from "./ReasonDialog";
 import { RequestFormDialog } from "./RequestForm";
-import { useAuth } from "../../../shared/auth/useAuth";
-import { useNotification } from "../../../shared/notification";
+import { useAuth } from "@workops-suite/shared-auth";
+import { useNotification } from "@workops-suite/shared-notification";
 
 export function RequestDetail() {
   const navigate = useNavigate();

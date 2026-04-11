@@ -32,7 +32,7 @@ import { useAssetTypes } from "../hooks/useAssetTypes";
 import { ASSET_STATUS_MAP, ASSET_STATUS_CHIP_COLOR } from "../constants";
 import { AssetFormDialog } from "./AssetFormDialog";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
-import { useNotification } from "../../../shared/notification";
+import { useNotification } from "@workops-suite/shared-notification";
 import { Can, AbilityContext } from "../../../shared/auth/ability";
 
 export function AssetList() {

@@ -15,7 +15,7 @@ import { NumberField } from "@base-ui/react/number-field";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAssetType, type AssetTypeCreateInput } from "../hooks/useAssetType";
-import { useNotification } from "../../../shared/notification";
+import { useNotification } from "@workops-suite/shared-notification";
 import {
   assetTypeFormSchema,
   type AssetTypeFormValues,

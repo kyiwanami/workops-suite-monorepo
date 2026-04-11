@@ -19,8 +19,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAbility } from "@casl/react";
 import { useRequest } from "../hooks/useRequest";
 import { useRequestTypes } from "../hooks/useRequestTypes";
-import { useNotification } from "../../../shared/notification";
-import { useAuth } from "../../../shared/auth/useAuth";
+import { useAuth } from "@workops-suite/shared-auth";
+import { useNotification } from "@workops-suite/shared-notification";
 import { AbilityContext } from "../../../shared/auth/ability";
 import {
   requestFormSchema,

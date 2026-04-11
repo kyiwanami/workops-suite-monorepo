@@ -6,7 +6,7 @@ import type {
   CreateProjectInput,
   UpdateProjectInput,
 } from "../types/project";
-import { useNotification } from "../../../shared/notification";
+import { useNotification } from "@workops-suite/shared-notification";
 
 const client = generateClient<Schema>();
 

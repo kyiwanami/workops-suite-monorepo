@@ -18,7 +18,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../../shared/auth/useAuth";
+import { useAuth } from "@workops-suite/shared-auth";
 import { Can } from "../../../shared/auth/ability";
 import { useRequests } from "../hooks/useRequests";
 import { useRequestTypes } from "../hooks/useRequestTypes";

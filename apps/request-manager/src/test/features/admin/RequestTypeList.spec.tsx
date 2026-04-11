@@ -10,7 +10,7 @@ const deleteRequestType = vi.fn();
 const openFormSpy = vi.fn();
 const confirmSpy = vi.fn();
 
-vi.mock("../../../shared/notification", () => ({
+vi.mock("@workops-suite/shared-notification", () => ({
   useNotification: () => ({
     showError,
     showSuccess,

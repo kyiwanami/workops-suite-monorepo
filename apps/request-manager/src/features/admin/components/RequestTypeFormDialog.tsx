@@ -19,7 +19,7 @@ import {
   useRequestType,
   type RequestTypeCreateInput,
 } from "../hooks/useRequestTypes";
-import { useNotification } from "../../../shared/notification";
+import { useNotification } from "@workops-suite/shared-notification";
 import {
   requestTypeFormSchema,
   type RequestTypeFormValues,

@@ -21,8 +21,8 @@ import { useAsset, type AssetCreateInput } from "../hooks/useAssets";
 import { useAssetTypes } from "../hooks/useAssetTypes";
 import { useDepartments } from "../hooks/useDepartments";
 import { ASSET_STATUS_MAP } from "../constants";
-import { useNotification } from "../../../shared/notification";
-import { useAuth } from "../../../shared/auth/useAuth";
+import { useAuth } from "@workops-suite/shared-auth";
+import { useNotification } from "@workops-suite/shared-notification";
 import { Can, AbilityContext } from "../../../shared/auth/ability";
 import {
   buildAssetFormSchema,

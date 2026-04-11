@@ -18,7 +18,7 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-vi.mock("../../../shared/auth/useAuth", () => ({
+vi.mock("@workops-suite/shared-auth", () => ({
   useAuth: () => ({
     userInfo: {
       departmentCode: "D-001",

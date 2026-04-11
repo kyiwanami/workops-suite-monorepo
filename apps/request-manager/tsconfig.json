@@ -20,6 +20,12 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
+      "@workops-suite/shared-auth": [
+        "../../packages/shared-auth/src/index.ts"
+      ],
+      "@workops-suite/shared-notification": [
+        "../../packages/shared-notification/src/index.ts"
+      ],
       "@workops/data-schema": [
         "../../packages/shared-backend/amplify/data/resource"
       ]

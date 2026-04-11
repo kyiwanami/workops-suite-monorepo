@@ -11,6 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@workops-suite/shared-auth": "*",
+    "@workops-suite/shared-notification": "*",
     "@workops-suite/shared-chatbot": "*"
   }
 }

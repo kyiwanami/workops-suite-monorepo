@@ -27,7 +27,7 @@ import {
 } from "../hooks/useRequestTypes";
 import { RequestTypeFormDialog } from "./RequestTypeFormDialog";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
-import { useNotification } from "../../../shared/notification";
+import { useNotification } from "@workops-suite/shared-notification";
 import { Can } from "../../../shared/auth/ability";
 
 export function RequestTypeList() {

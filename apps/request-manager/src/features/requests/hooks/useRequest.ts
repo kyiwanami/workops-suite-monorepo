@@ -5,8 +5,8 @@ import {
   isTransitionAllowed,
   type RequestStatusCode,
 } from "../workflow";
-import { useNotification } from "../../../shared/notification";
-import { useAuth } from "../../../shared/auth/useAuth";
+import { useAuth } from "@workops-suite/shared-auth";
+import { useNotification } from "@workops-suite/shared-notification";
 
 const client = generateClient<Schema>();
 

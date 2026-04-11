@@ -11,14 +11,14 @@ const createRequest = vi.fn();
 const updateRequest = vi.fn();
 const submitRequest = vi.fn();
 
-vi.mock("../../../shared/notification", () => ({
+vi.mock("@workops-suite/shared-notification", () => ({
   useNotification: () => ({
     showError,
     showSuccess,
   }),
 }));
 
-vi.mock("../../../shared/auth/useAuth", () => ({
+vi.mock("@workops-suite/shared-auth", () => ({
   useAuth: () => ({
     userInfo: {
       userId: "user-1",

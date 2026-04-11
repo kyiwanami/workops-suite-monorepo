@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useNotification, NotificationProvider } from "../../../shared/notification";
-import { NotificationContainer } from "../../../shared/notification/NotificationContainer";
-import type { NotificationOptions, NotificationState } from "../../../shared/notification/types";
+import {
+  NotificationContainer,
+  NotificationProvider,
+  useNotification,
+  type NotificationOptions,
+  type NotificationState,
+} from "@workops-suite/shared-notification";
 import { describe, expect, it, vi } from "vitest";
 
 const NotificationHarness = () => {

@@ -68,14 +68,14 @@ vi.mock("../../../../features/assets/hooks/useDepartments", () => ({
   }),
 }));
 
-vi.mock("../../../../shared/notification", () => ({
+vi.mock("@workops-suite/shared-notification", () => ({
   useNotification: () => ({
     showError: state.showError,
     showSuccess: state.showSuccess,
   }),
 }));
 
-vi.mock("../../../../shared/auth/useAuth", () => ({
+vi.mock("@workops-suite/shared-auth", () => ({
   useAuth: () => ({
     userInfo: {
       departmentCode: "DEP-1",
