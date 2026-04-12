@@ -116,8 +116,13 @@ export function RequestDetail() {
       result = await withdrawRequest();
     } else if (action === "approve") {
       if (!userInfo.userId) {
-        console.error("Request approve validation error", "ユーザー情報が取得できません");
-        showError("ユーザー情報が取得できません");
+        console.error("Request approve validation error", {
+          userId: userInfo.userId,
+          departmentCode: userInfo.departmentCode,
+          role: userInfo.role,
+          isGlobalAdmin: userInfo.isGlobalAdmin,
+        });
+        showError("このユーザーは承認機能を利用できません。ユーザー情報が未設定です");
         setActionLoading(false);
         setConfirmDialogOpen({ open: false });
         return;
@@ -125,8 +130,13 @@ export function RequestDetail() {
       result = await approveRequest(userInfo.userId);
     } else if (action === "delete") {
       if (!userInfo.userId) {
-        console.error("Request delete validation error", "ユーザー情報が取得できません");
-        showError("ユーザー情報が取得できません");
+        console.error("Request delete validation error", {
+          userId: userInfo.userId,
+          departmentCode: userInfo.departmentCode,
+          role: userInfo.role,
+          isGlobalAdmin: userInfo.isGlobalAdmin,
+        });
+        showError("このユーザーは削除機能を利用できません。ユーザー情報が未設定です");
         setActionLoading(false);
         setConfirmDialogOpen({ open: false });
         return;

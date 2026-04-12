@@ -99,7 +99,14 @@ export function RequestFormDialog({
     }
 
     if (!userInfo.userId || !userInfo.departmentCode) {
-      showError("ユーザー情報が取得できません");
+      console.error("Request persist validation error", {
+        userId: userInfo.userId,
+        departmentCode: userInfo.departmentCode,
+        role: userInfo.role,
+        isGlobalAdmin: userInfo.isGlobalAdmin,
+        shouldSubmit,
+      });
+      showError("このユーザーは申請機能を利用できません。部署情報が未設定です");
       return;
     }
 
