@@ -23,6 +23,8 @@ const projectSelectionSet = [
 export const useProjects = () => {
   const [projects, setProjects] = useState<ProjectDataType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [operationLoading, setOperationLoading] = useState(false);
+  const [operationError, setOperationError] = useState<string | null>(null);
   const { showSuccess, showError } = useNotification();
 
   // プロジェクト一覧の監視とリアルタイム同期
@@ -34,10 +36,10 @@ export const useProjects = () => {
         const allProjects = data.items.map((proj) => ({
           projectId: proj.projectId,
           name: proj.name,
-          description: proj.description,
+          description: proj.description ?? null,
           urlDomain: proj.urlDomain,
-          iconName: proj.iconName,
-          color: proj.color,
+          iconName: proj.iconName ?? null,
+          color: proj.color ?? null,
           pages: [],
         }));
 
@@ -58,6 +60,9 @@ export const useProjects = () => {
   const createProject = async (
     input: CreateProjectInput
   ): Promise<ProjectDataType | null> => {
+    setOperationLoading(true);
+    setOperationError(null);
+
     const { data, errors } = await client.models.Project.create({
       projectId: input.projectId,
       name: input.name,
@@ -70,6 +75,8 @@ export const useProjects = () => {
     if (errors) {
       console.error("GraphQL errors in createProject:", errors);
       showError("プロジェクトの作成に失敗しました");
+      setOperationLoading(false);
+      setOperationError("プロジェクトの作成に失敗しました");
       return null;
     }
 
@@ -80,10 +87,14 @@ export const useProjects = () => {
       };
 
       showSuccess(`プロジェクト「${newProject.name}」を作成しました`);
+      setOperationLoading(false);
       return newProject;
     }
 
+    console.error("Project create returned no data");
     showError("プロジェクトの作成に失敗しました");
+    setOperationLoading(false);
+    setOperationError("プロジェクトの作成に失敗しました");
     return null;
   };
 
@@ -91,11 +102,16 @@ export const useProjects = () => {
   const updateProject = async (
     input: UpdateProjectInput
   ): Promise<ProjectDataType | null> => {
+    setOperationLoading(true);
+    setOperationError(null);
+
     const { data, errors } = await client.models.Project.update(input);
 
     if (errors) {
       console.error("GraphQL errors in updateProject:", errors);
       showError("プロジェクトの更新に失敗しました");
+      setOperationLoading(false);
+      setOperationError("プロジェクトの更新に失敗しました");
       return null;
     }
 
@@ -109,21 +125,28 @@ export const useProjects = () => {
       };
 
       showSuccess(`プロジェクト「${updatedProject.name}」を更新しました`);
+      setOperationLoading(false);
       return updatedProject;
     }
 
+    console.error("Project update returned no data");
     showError("プロジェクトの更新に失敗しました");
+    setOperationLoading(false);
+    setOperationError("プロジェクトの更新に失敗しました");
     return null;
   };
 
   // プロジェクト削除
   const deleteProject = async (projectId: string): Promise<boolean> => {
+    setOperationLoading(true);
+    setOperationError(null);
+
     const project = projects.find((p) => p.projectId === projectId);
     const projectName = project?.name || projectId;
 
     // 関連するページを削除
     if (project && project.pages.length > 0) {
-      await Promise.all(
+      const deleteResults = await Promise.all(
         project.pages.map(async (page) => {
           const { data, errors } = await client.models.Page.delete({
             pageId: page.pageId,
@@ -135,13 +158,23 @@ export const useProjects = () => {
               "GraphQL errors in deleteProject (page deletion):",
               errors
             );
-            return;
+            return false;
           }
           if (!data) {
-            return;
+            console.error("Page delete returned no data in deleteProject");
+            return false;
           }
+
+          return true;
         })
       );
+
+      if (deleteResults.includes(false)) {
+        showError("プロジェクトに関連するページの削除に失敗しました");
+        setOperationLoading(false);
+        setOperationError("プロジェクトに関連するページの削除に失敗しました");
+        return false;
+      }
     }
 
     // プロジェクトを削除
@@ -150,20 +183,28 @@ export const useProjects = () => {
     if (errors) {
       console.error("GraphQL errors in deleteProject:", errors);
       showError("プロジェクトの削除に失敗しました");
+      setOperationLoading(false);
+      setOperationError("プロジェクトの削除に失敗しました");
       return false;
     }
     if (!data) {
+      console.error("Project delete returned no data");
       showError("プロジェクトの削除に失敗しました");
+      setOperationLoading(false);
+      setOperationError("プロジェクトの削除に失敗しました");
       return false;
     }
 
     showSuccess(`プロジェクト「${projectName}」を削除しました`);
+    setOperationLoading(false);
     return true;
   };
 
   return {
     projects,
     isLoading,
+    operationLoading,
+    operationError,
     createProject,
     updateProject,
     deleteProject,

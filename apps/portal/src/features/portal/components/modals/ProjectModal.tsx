@@ -6,6 +6,7 @@ import {
   DialogActions,
   TextField,
   Button,
+  Alert,
   Box,
   Typography,
   Link,
@@ -40,7 +41,8 @@ const defaultValues: ProjectFormValues = {
 };
 
 const ProjectModal = ({ open, onClose, editingProject }: ProjectModalProps) => {
-  const { projects, createProject, updateProject } = useProjects();
+  const { projects, createProject, updateProject, operationLoading, operationError } =
+    useProjects();
   const isEditMode = !!editingProject;
 
   const schema = useMemo(
@@ -97,24 +99,35 @@ const ProjectModal = ({ open, onClose, editingProject }: ProjectModalProps) => {
         iconName: values.iconName,
         color: values.color,
       };
-      await updateProject(updateData);
-    } else {
-      const createData: CreateProjectInput = {
-        projectId: values.projectId,
-        name: values.name,
-        description: values.description,
-        urlDomain: values.urlDomain,
-        iconName: values.iconName,
-        color: values.color,
-      };
-      await createProject(createData);
+      const updatedProject = await updateProject(updateData);
+      if (updatedProject) {
+        onClose();
+      }
+      return;
     }
 
-    onClose();
+    const createData: CreateProjectInput = {
+      projectId: values.projectId,
+      name: values.name,
+      description: values.description,
+      urlDomain: values.urlDomain,
+      iconName: values.iconName,
+      color: values.color,
+    };
+    const createdProject = await createProject(createData);
+    if (createdProject) {
+      onClose();
+    }
+  };
+
+  const handleClose = () => {
+    if (!operationLoading) {
+      onClose();
+    }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
       <DialogTitle>
         {isEditMode ? "プロジェクトを編集" : "新しいプロジェクトを登録"}
       </DialogTitle>
@@ -132,6 +145,7 @@ const ProjectModal = ({ open, onClose, editingProject }: ProjectModalProps) => {
               fullWidth
               variant="outlined"
               placeholder="業務ポータル"
+              disabled={operationLoading}
               error={!!fieldState.error}
               helperText={fieldState.error?.message}
             />
@@ -150,7 +164,7 @@ const ProjectModal = ({ open, onClose, editingProject }: ProjectModalProps) => {
               type="text"
               fullWidth
               variant="outlined"
-              disabled={isEditMode}
+              disabled={operationLoading || isEditMode}
               placeholder="WORKOPS_PORTAL"
               error={!!fieldState.error}
               helperText={fieldState.error?.message}
@@ -171,6 +185,7 @@ const ProjectModal = ({ open, onClose, editingProject }: ProjectModalProps) => {
               variant="outlined"
               multiline
               rows={3}
+              disabled={operationLoading}
               placeholder="プロジェクトの説明"
             />
           )}
@@ -189,6 +204,7 @@ const ProjectModal = ({ open, onClose, editingProject }: ProjectModalProps) => {
               fullWidth
               variant="outlined"
               placeholder="https://example.com"
+              disabled={operationLoading}
               error={!!fieldState.error}
               helperText={fieldState.error?.message}
             />
@@ -208,6 +224,7 @@ const ProjectModal = ({ open, onClose, editingProject }: ProjectModalProps) => {
                 placeholder="Settings"
                 fullWidth
                 variant="outlined"
+                disabled={operationLoading}
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
               />
@@ -276,6 +293,7 @@ const ProjectModal = ({ open, onClose, editingProject }: ProjectModalProps) => {
                 placeholder="#1976d2"
                 fullWidth
                 variant="outlined"
+                disabled={operationLoading}
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
               />
@@ -308,10 +326,27 @@ const ProjectModal = ({ open, onClose, editingProject }: ProjectModalProps) => {
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>キャンセル</Button>
-        <Button onClick={handleSubmit(onSubmit)} variant="contained">
-          {isEditMode ? "更新" : "登録"}
+      <DialogActions sx={{ alignItems: "center" }}>
+        {operationError && (
+          <Alert severity="error" sx={{ flexGrow: 1 }}>
+            {operationError}
+          </Alert>
+        )}
+        <Button onClick={handleClose} disabled={operationLoading}>
+          キャンセル
+        </Button>
+        <Button
+          onClick={handleSubmit(onSubmit)}
+          variant="contained"
+          disabled={operationLoading}
+        >
+          {operationLoading
+            ? isEditMode
+              ? "更新中..."
+              : "登録中..."
+            : isEditMode
+              ? "更新"
+              : "登録"}
         </Button>
       </DialogActions>
     </Dialog>

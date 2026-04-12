@@ -9,3 +9,4 @@ __pycache__
 # develop
 PLAN.md
 HANDOFF.md
+.codex/environments/environment.toml

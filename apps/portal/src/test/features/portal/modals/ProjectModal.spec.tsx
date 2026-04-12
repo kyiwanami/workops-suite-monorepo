@@ -8,6 +8,8 @@ const mockUseProjects = vi.hoisted(() => ({
   projects: [] satisfies ProjectDataType[],
   createProject: vi.fn(),
   updateProject: vi.fn(),
+  operationLoading: false,
+  operationError: null as string | null,
 }));
 
 vi.mock("../../../../features/portal/hooks/useProjects", () => ({
@@ -26,10 +28,23 @@ const editingProject: ProjectDataType = {
 
 beforeEach(() => {
   mockUseProjects.projects = [];
+  mockUseProjects.operationLoading = false;
+  mockUseProjects.operationError = null;
   mockUseProjects.createProject.mockReset();
   mockUseProjects.updateProject.mockReset();
-  mockUseProjects.createProject.mockResolvedValue(undefined);
-  mockUseProjects.updateProject.mockResolvedValue(undefined);
+  mockUseProjects.createProject.mockResolvedValue({
+    projectId: "portal",
+    name: "業務ポータル",
+    description: "",
+    urlDomain: "https://portal.example.com",
+    iconName: "Home",
+    color: "#1976d2",
+    pages: [],
+  });
+  mockUseProjects.updateProject.mockResolvedValue({
+    ...editingProject,
+    description: "更新した説明",
+  });
 });
 
 describe("ProjectModal", () => {

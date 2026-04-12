@@ -9,7 +9,7 @@ describe("buildProjectFormSchema", () => {
     }).safeParse({
       projectId: "proj-1",
       name: "共通基盤",
-      urlDomain: "example.com",
+      urlDomain: "https://example.com",
     });
 
     expect(result.success).toBe(true);
@@ -22,7 +22,7 @@ describe("buildProjectFormSchema", () => {
     }).safeParse({
       projectId: "proj-1",
       name: "共通基盤",
-      urlDomain: "example.com",
+      urlDomain: "https://example.com",
     });
 
     expect(result.success).toBe(false);
@@ -31,5 +31,25 @@ describe("buildProjectFormSchema", () => {
     }
 
     expect(result.error.issues[0]?.message).toBe("このプロジェクトIDは既に使用されています");
+  });
+
+  it("URL形式が不正なら失敗する", () => {
+    const result = buildProjectFormSchema({
+      isEditMode: false,
+      existingProjectIds: [],
+    }).safeParse({
+      projectId: "proj-2",
+      name: "共通基盤",
+      urlDomain: "example",
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) {
+      throw new Error("expected validation error");
+    }
+
+    expect(result.error.issues[0]?.message).toBe(
+      "ドメインURLは有効なURL形式で入力してください"
+    );
   });
 });

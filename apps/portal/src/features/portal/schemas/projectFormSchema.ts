@@ -16,7 +16,10 @@ export const buildProjectFormSchema = ({
       projectId: requiredText("プロジェクトIDは必須です"),
       name: requiredText("プロジェクト名は必須です"),
       description: z.string().nullable().optional(),
-      urlDomain: requiredText("ドメインURLは必須です"),
+      urlDomain: requiredText("ドメインURLは必須です").refine(
+        (value) => URL.canParse(value),
+        "ドメインURLは有効なURL形式で入力してください"
+      ),
       iconName: z.string().nullable().optional(),
       color: z.string().nullable().optional(),
     })
