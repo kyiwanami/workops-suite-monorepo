@@ -2,20 +2,30 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, vi, describe, expect, it } from "vitest";
 import { renderWithProviders } from "../../renderWithProviders";
 import { CreateDepartmentModal } from "../../../features/department-management/components/CreateDepartmentModal";
+import { type DepartmentType } from "../../../features/department-management/types";
 
-const { createDepartment } = vi.hoisted(() => ({
-  createDepartment: vi.fn(async () => true),
+const { createDepartment, updateDepartment } = vi.hoisted(() => ({
+  createDepartment: vi.fn(
+    async (): Promise<DepartmentType> => ({
+      code: "SALES",
+      name: "営業部",
+      sortOrder: 0,
+      notes: "運用メモ",
+      createdAt: "",
+      updatedAt: "",
+    })
+  ),
+  updateDepartment: vi.fn(
+    async (): Promise<DepartmentType> => ({
+      code: "SALES",
+      name: "営業部",
+      sortOrder: 0,
+      notes: "運用メモ",
+      createdAt: "",
+      updatedAt: "",
+    })
+  ),
 }));
-
-vi.mock(
-  "../../../features/department-management/hooks/useDepartmentManagement",
-  () => ({
-    useDepartmentManagement: () => ({
-      createDepartment,
-      updateDepartment: vi.fn(async () => true),
-    }),
-  })
-);
 
 describe("CreateDepartmentModal", () => {
   beforeEach(() => {
@@ -26,7 +36,12 @@ describe("CreateDepartmentModal", () => {
     const onClose = vi.fn();
 
     renderWithProviders(
-      <CreateDepartmentModal open={true} onClose={onClose} />
+      <CreateDepartmentModal
+        open={true}
+        onClose={onClose}
+        createDepartment={createDepartment}
+        updateDepartment={updateDepartment}
+      />
     );
 
     expect(screen.getByText("新規部署を作成")).toBeInTheDocument();
@@ -34,14 +49,19 @@ describe("CreateDepartmentModal", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
 
-    expect(onClose).toHaveBeenCalledWith(false);
+    expect(onClose).toHaveBeenCalled();
   });
 
   it("入力内容を送信して成功時に閉じる", async () => {
     const onClose = vi.fn();
 
     renderWithProviders(
-      <CreateDepartmentModal open={true} onClose={onClose} />
+      <CreateDepartmentModal
+        open={true}
+        onClose={onClose}
+        createDepartment={createDepartment}
+        updateDepartment={updateDepartment}
+      />
     );
 
     fireEvent.change(screen.getByRole("textbox", { name: /部署コード/ }), {
@@ -60,10 +80,10 @@ describe("CreateDepartmentModal", () => {
       expect(createDepartment).toHaveBeenCalledWith({
         code: "SALES",
         name: "営業部",
-        sortOrder: undefined,
+        sortOrder: 0,
         notes: "運用メモ",
       });
-      expect(onClose).toHaveBeenCalledWith(true);
+      expect(onClose).toHaveBeenCalled();
     });
   });
 });

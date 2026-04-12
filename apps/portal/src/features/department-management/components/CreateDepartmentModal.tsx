@@ -15,7 +15,6 @@ import {
 import { NumberField } from "@base-ui/react/number-field";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useDepartmentManagement } from "../hooks/useDepartmentManagement";
 import {
   type DepartmentType,
   type CreateDepartmentInput,
@@ -28,8 +27,14 @@ import {
 
 interface CreateDepartmentModalProps {
   open: boolean;
-  onClose: (success?: boolean) => void;
+  onClose: () => void;
   department?: DepartmentType | null;
+  createDepartment: (
+    input: CreateDepartmentInput
+  ) => Promise<DepartmentType | null>;
+  updateDepartment: (
+    input: UpdateDepartmentInput
+  ) => Promise<DepartmentType | null>;
 }
 
 const createFormValues = (
@@ -37,7 +42,7 @@ const createFormValues = (
 ): CreateDepartmentFormValues => ({
   code: department?.code ?? "",
   name: department?.name ?? "",
-  sortOrder: department?.sortOrder ?? undefined,
+  sortOrder: department?.sortOrder ?? 0,
   notes: department?.notes ?? "",
 });
 
@@ -45,9 +50,10 @@ export const CreateDepartmentModal = ({
   open,
   onClose,
   department,
+  createDepartment,
+  updateDepartment,
 }: CreateDepartmentModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { createDepartment, updateDepartment } = useDepartmentManagement();
   const isEditMode = department != null;
 
   const { control, handleSubmit, reset } = useForm<CreateDepartmentFormValues>({
@@ -68,7 +74,7 @@ export const CreateDepartmentModal = ({
 
   const handleClose = () => {
     reset(createFormValues());
-    onClose(false);
+    onClose();
   };
 
   const onSubmit = async (values: CreateDepartmentFormValues) => {
@@ -83,7 +89,7 @@ export const CreateDepartmentModal = ({
       const updateInput: UpdateDepartmentInput = {
         code: department?.code ?? "",
         name: values.name,
-        sortOrder: values.sortOrder ?? null,
+        sortOrder: values.sortOrder,
         notes: values.notes,
       };
 
@@ -94,7 +100,7 @@ export const CreateDepartmentModal = ({
 
       if (result) {
         reset(createFormValues());
-        onClose(true);
+        onClose();
       }
     } finally {
       setIsSubmitting(false);
@@ -177,15 +183,13 @@ export const CreateDepartmentModal = ({
                   表示順
                 </Typography>
                 <NumberField.Root
-                  value={field.value ?? null}
+                  value={field.value}
                   min={0}
                   step={1}
                   name={field.name}
                   disabled={isSubmitting}
                   inputRef={field.ref}
-                  onValueChange={(value) =>
-                    field.onChange(value === null ? undefined : value)
-                  }
+                  onValueChange={field.onChange}
                 >
                   <NumberField.Group
                     style={{

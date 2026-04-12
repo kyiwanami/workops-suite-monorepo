@@ -106,7 +106,7 @@ export const DepartmentTable = ({
               </TableCell>
               <TableCell>
                 <Typography variant="body2" color="text.secondary">
-                  {dept.sortOrder != null ? dept.sortOrder : "—"}
+                  {dept.sortOrder}
                 </Typography>
               </TableCell>
               <TableCell>

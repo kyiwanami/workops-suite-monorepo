@@ -177,7 +177,7 @@ const schema = a
       .model({
         code: a.string().required(), // PK（不変・UI で強制）
         name: a.string().required(),
-        sortOrder: a.integer(),
+        sortOrder: a.integer().required(),
         notes: a.string(),
       })
       .identifier(["code"])

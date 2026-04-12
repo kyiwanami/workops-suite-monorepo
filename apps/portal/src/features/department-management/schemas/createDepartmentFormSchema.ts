@@ -9,8 +9,7 @@ export const createDepartmentFormSchema = z.object({
   sortOrder: z
     .number()
     .int("表示順は0以上の数値で入力してください")
-    .min(0, "表示順は0以上の数値で入力してください")
-    .optional(),
+    .min(0, "表示順は0以上の数値で入力してください"),
   notes: z.string(),
 });
 

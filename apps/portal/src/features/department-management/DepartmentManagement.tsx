@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -11,10 +11,7 @@ import {
   Divider,
   Typography,
 } from "@mui/material";
-import {
-  AddOutlined as AddIcon,
-  RefreshOutlined as RefreshIcon,
-} from "@mui/icons-material";
+import { AddOutlined as AddIcon } from "@mui/icons-material";
 import { DepartmentTable } from "./components/DepartmentTable";
 import { CreateDepartmentModal } from "./components/CreateDepartmentModal";
 import { useDepartmentManagement } from "./hooks/useDepartmentManagement";
@@ -22,22 +19,22 @@ import { type DepartmentType } from "./types";
 import { Can } from "../../shared/auth/ability";
 
 const DepartmentManagement = () => {
-  const { departments, loading, fetchDepartments, deleteDepartment } =
-    useDepartmentManagement();
+  const {
+    departments,
+    loading,
+    createDepartment,
+    updateDepartment,
+    deleteDepartment,
+  } = useDepartmentManagement();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] =
     useState<DepartmentType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DepartmentType | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchDepartments();
-  }, [fetchDepartments]);
-
-  const handleModalClose = (success?: boolean) => {
+  const handleModalClose = () => {
     setCreateModalOpen(false);
     setEditingDepartment(null);
-    if (success) fetchDepartments();
   };
 
   const handleCreateRequest = () => {
@@ -57,7 +54,6 @@ const DepartmentManagement = () => {
     setIsDeleting(false);
     if (success) {
       setDeleteTarget(null);
-      fetchDepartments();
     }
   };
 
@@ -84,15 +80,6 @@ const DepartmentManagement = () => {
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<RefreshIcon />}
-                  onClick={fetchDepartments}
-                  disabled={loading}
-                  sx={{ borderRadius: 2, textTransform: "none" }}
-                >
-                  更新
-                </Button>
                 {allowed && (
                   <Button
                     variant="contained"
@@ -123,6 +110,8 @@ const DepartmentManagement = () => {
                 open={createModalOpen}
                 onClose={handleModalClose}
                 department={editingDepartment}
+                createDepartment={createDepartment}
+                updateDepartment={updateDepartment}
               />
             )}
 

@@ -17,6 +17,7 @@ describe("createDepartmentFormSchema", () => {
     const result = createDepartmentFormSchema.safeParse({
       code: "sales_1",
       name: "営業",
+      sortOrder: 1,
       notes: "営業部門",
     });
 
@@ -26,5 +27,15 @@ describe("createDepartmentFormSchema", () => {
     }
 
     expect(result.error.issues[0]?.message).toBe("英大文字・数字・アンダースコアのみ使用できます");
+  });
+
+  it("表示順が未入力だと失敗する", () => {
+    const result = createDepartmentFormSchema.safeParse({
+      code: "SALES_1",
+      name: "営業",
+      notes: "営業部門",
+    });
+
+    expect(result.success).toBe(false);
   });
 });
