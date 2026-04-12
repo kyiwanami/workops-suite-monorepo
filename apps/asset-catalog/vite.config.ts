@@ -11,6 +11,10 @@ export default defineConfig({
         __dirname,
         "../../packages/shared-auth/src/index.ts"
       ),
+      "@workops-suite/shared-department": resolve(
+        __dirname,
+        "../../packages/shared-department/src/index.ts"
+      ),
       "@workops-suite/shared-navigation": resolve(
         __dirname,
         "../../packages/shared-navigation/src/index.ts"

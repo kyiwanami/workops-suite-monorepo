@@ -61,7 +61,7 @@ vi.mock("../../../../features/assets/hooks/useAssetTypes", () => ({
   }),
 }));
 
-vi.mock("../../../../features/assets/hooks/useDepartments", () => ({
+vi.mock("@workops-suite/shared-department", () => ({
   useDepartments: () => ({
     departments: state.departments,
     loading: false,

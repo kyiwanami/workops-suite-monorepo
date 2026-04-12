@@ -23,7 +23,7 @@ const AuthorizedApp = () => {
   return (
     <ChatBotProvider
       config={{
-        projectId: "@workops-suite/asset-catalog",
+        appId: "@workops-suite/asset-catalog",
         agentCoreUrl,
         userInfo,
         title: "資産カタログチャット",

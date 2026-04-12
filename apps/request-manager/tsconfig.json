@@ -23,6 +23,9 @@
       "@workops-suite/shared-auth": [
         "../../packages/shared-auth/src/index.ts"
       ],
+      "@workops-suite/shared-department": [
+        "../../packages/shared-department/src/index.ts"
+      ],
       "@workops-suite/shared-navigation": [
         "../../packages/shared-navigation/src/index.ts"
       ],

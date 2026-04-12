@@ -6,6 +6,7 @@ import { RequestList } from "../../../features/requests/components/RequestList";
 
 const navigate = vi.fn();
 let requestLoading = false;
+let requestedDepartmentId = "";
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>(
@@ -26,33 +27,47 @@ vi.mock("@workops-suite/shared-auth", () => ({
   }),
 }));
 
+vi.mock("@workops-suite/shared-department", () => ({
+  useDepartments: () => ({
+    departments: [
+      { code: "D-001", name: "総務部", sortOrder: 1 },
+      { code: "D-002", name: "営業部", sortOrder: 2 },
+    ],
+    loading: false,
+  }),
+}));
+
 vi.mock("../../../shared/auth/ability", () => ({
   Can: ({ children }: { children?: ReactNode | ((allowed: boolean) => ReactNode) }) =>
     typeof children === "function" ? <>{children(true)}</> : <>{children}</>,
 }));
 
 vi.mock("../../../features/requests/hooks/useRequests", () => ({
-  useRequests: () => ({
-    requests: [
-      {
-        id: "req-1",
-        createdAt: "2026-03-21T00:00:00.000Z",
-        status: "draft",
-        requestTypeId: "rt-1",
-        title: "備品購入",
-        amount: null,
-      },
-      {
-        id: "req-2",
-        createdAt: "2026-03-20T00:00:00.000Z",
-        status: "submitted",
-        requestTypeId: "rt-2",
-        title: "出張申請",
-        amount: 50000,
-      },
-    ],
-    loading: requestLoading,
-  }),
+  useRequests: (departmentId: string) => {
+    requestedDepartmentId = departmentId;
+
+    return {
+      requests: [
+        {
+          id: "req-1",
+          createdAt: "2026-03-21T00:00:00.000Z",
+          status: "draft",
+          requestTypeId: "rt-1",
+          title: "備品購入",
+          amount: 12000,
+        },
+        {
+          id: "req-2",
+          createdAt: "2026-03-20T00:00:00.000Z",
+          status: "submitted",
+          requestTypeId: "rt-2",
+          title: "出張申請",
+          amount: 50000,
+        },
+      ],
+      loading: requestLoading,
+    };
+  },
 }));
 
 vi.mock("../../../features/requests/hooks/useRequestTypes", () => ({
@@ -73,6 +88,7 @@ vi.mock("../../../features/requests/components/RequestForm", () => ({
 describe("RequestList", () => {
   it("読み込み中はローディングを表示する", () => {
     requestLoading = true;
+    requestedDepartmentId = "";
 
     renderWithProviders(<RequestList />);
 
@@ -81,21 +97,29 @@ describe("RequestList", () => {
   });
 
   it("絞り込み結果がないときは空状態を表示する", () => {
+    requestedDepartmentId = "";
     renderWithProviders(<RequestList />);
 
-    fireEvent.mouseDown(screen.getByRole("combobox"));
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "状態" }));
     fireEvent.click(screen.getByRole("option", { name: "却下" }));
 
     expect(screen.getByText("申請がありません")).toBeInTheDocument();
   });
 
-  it("一覧をフィルタして詳細へ遷移し、新規申請を開く", () => {
+  it("部署プルダウンで取得対象を切り替えつつ一覧をフィルタして詳細へ遷移し、新規申請を開く", () => {
+    requestedDepartmentId = "";
     renderWithProviders(<RequestList />);
 
+    expect(requestedDepartmentId).toBe("D-001");
     expect(screen.getByText("備品購入")).toBeInTheDocument();
     expect(screen.getByText("出張申請")).toBeInTheDocument();
 
-    fireEvent.mouseDown(screen.getByRole("combobox"));
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "部署" }));
+    fireEvent.click(screen.getByRole("option", { name: "営業部" }));
+
+    expect(requestedDepartmentId).toBe("D-002");
+
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "状態" }));
     fireEvent.click(screen.getByRole("option", { name: "申請中" }));
 
     expect(screen.queryByText("備品購入")).not.toBeInTheDocument();

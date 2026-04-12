@@ -23,7 +23,7 @@ const AuthorizedApp = () => {
   return (
     <ChatBotProvider
       config={{
-        projectId: "@workops-suite/request-manager",
+        appId: "@workops-suite/request-manager",
         agentCoreUrl,
         userInfo,
         title: "申請マネージャーチャット",

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@workops-suite/shared-auth": "*",
+    "@workops-suite/shared-department": "*",
     "@workops-suite/shared-navigation": "*",
     "@workops-suite/shared-notification": "*",
     "@workops-suite/shared-chatbot": "*"
