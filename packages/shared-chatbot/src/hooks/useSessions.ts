@@ -7,15 +7,15 @@ import { useChatBotConfig } from "../context/ChatBotConfigContext";
 const client = generateClient<Schema>();
 
 export function useSessions() {
-  const { projectId } = useChatBotConfig();
+  const { appId } = useChatBotConfig();
   const [sessions, setSessions] = useState<Session[]>([]);
 
   // セッション一覧を updatedAt の降順で取得する
   const loadSessions = async () => {
     const { data, errors } =
-      await client.models.ChatSession.listChatSessionByProjectId(
+      await client.models.ChatSession.listChatSessionByAppId(
         {
-          projectId,
+          appId,
         },
         {
           limit: 50,
@@ -46,7 +46,7 @@ export function useSessions() {
   // 新規セッションを作成し、自動生成されたIDを返す
   const createSession = async (): Promise<string | null> => {
     const { data, errors } = await client.models.ChatSession.create({
-      projectId,
+      appId,
       name: `会話 - ${new Date().toLocaleString("ja-JP")}`,
     });
 

@@ -51,7 +51,7 @@ export interface Attachment {
 }
 
 export function useChatBot(sessionId: string) {
-  const { projectId, agentCoreUrl, userInfo } = useChatBotConfig();
+  const { appId, agentCoreUrl, userInfo } = useChatBotConfig();
   const [messages, setMessages] = useState<Message[]>([]);
   const [nextToken, setNextToken] = useState<string | null | undefined>(
     undefined,
@@ -153,7 +153,7 @@ export function useChatBot(sessionId: string) {
     const { errors: userMessageErrors } =
       await client.models.ChatMessage.create({
         sessionId,
-        projectId,
+        appId,
         role: "user",
         content: query,
         traces: null,
@@ -272,7 +272,7 @@ export function useChatBot(sessionId: string) {
 
     const { errors: aiMessageErrors } = await client.models.ChatMessage.create({
       sessionId,
-      projectId,
+      appId,
       role: "assistant",
       content: aiAnswer,
       traces: result.traces ? JSON.stringify(result.traces) : undefined,

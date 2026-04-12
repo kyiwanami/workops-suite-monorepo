@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import PageCard from "../../../../features/portal/components/PageCard";
-import type { PageDataType } from "../../../../features/portal/types/project";
+import type { PageDataType } from "../../../../features/portal/types/app";
 
 const basePage: PageDataType = {
   pageId: "page-1",
-  projectId: "project-1",
+  appId: "app-1",
   name: "ホーム",
   description: "ポータルの入口ページ",
   relativePath: "home",
@@ -17,8 +17,8 @@ describe("PageCard", () => {
     render(
       <PageCard
         page={basePage}
-        projectColor="#1976d2"
-        projectUrlDomain="https://example.com"
+        appColor="#1976d2"
+        appUrlDomain="https://example.com"
       />
     );
 
@@ -34,14 +34,14 @@ describe("PageCard", () => {
   it("編集と削除のハンドラーに対象ページを渡す", () => {
     const onEdit = vi.fn<(page: PageDataType) => void>();
     const onDelete = vi.fn<
-      (pageId: string, projectId: string, pageName: string) => void
+      (pageId: string, appId: string, pageName: string) => void
     >();
 
     render(
       <PageCard
         page={basePage}
-        projectColor="#1976d2"
-        projectUrlDomain="https://example.com"
+        appColor="#1976d2"
+        appUrlDomain="https://example.com"
         onEdit={onEdit}
         onDelete={onDelete}
       />
@@ -51,6 +51,6 @@ describe("PageCard", () => {
     fireEvent.click(screen.getByLabelText("delete page"));
 
     expect(onEdit).toHaveBeenCalledWith(basePage);
-    expect(onDelete).toHaveBeenCalledWith("page-1", "project-1", "ホーム");
+    expect(onDelete).toHaveBeenCalledWith("page-1", "app-1", "ホーム");
   });
 });

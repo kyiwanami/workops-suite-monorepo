@@ -14,11 +14,11 @@ import {
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type {
-  ProjectDataType,
+  AppDataType,
   PageDataType,
   CreatePageInput,
   UpdatePageInput,
-} from "../../types/project";
+} from "../../types/app";
 import { getIcon } from "../../utils/getIcon";
 import {
   buildPageFormSchema,
@@ -29,7 +29,7 @@ interface PageModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (page: CreatePageInput | UpdatePageInput) => Promise<void>;
-  selectedProject: ProjectDataType;
+  selectedApp: AppDataType;
   editingPage?: PageDataType | null;
 }
 
@@ -45,7 +45,7 @@ const PageModal = ({
   open,
   onClose,
   onSubmit,
-  selectedProject,
+  selectedApp,
   editingPage,
 }: PageModalProps) => {
   const isEditMode = !!editingPage;
@@ -54,9 +54,9 @@ const PageModal = ({
     () =>
       buildPageFormSchema({
         isEditMode,
-        existingPageIds: selectedProject.pages.map((page) => page.pageId),
+        existingPageIds: selectedApp.pages.map((page) => page.pageId),
       }),
-    [isEditMode, selectedProject],
+    [isEditMode, selectedApp],
   );
 
   const {
@@ -95,9 +95,9 @@ const PageModal = ({
 
   const getFullUrl = () => {
     if (!relativePath) {
-      return selectedProject.urlDomain;
+      return selectedApp.urlDomain;
     }
-    const cleanDomain = selectedProject.urlDomain.replace(/\/$/, "");
+    const cleanDomain = selectedApp.urlDomain.replace(/\/$/, "");
     const cleanPath = relativePath.replace(/^\//, "");
     return `${cleanDomain}/${cleanPath}`;
   };
@@ -106,7 +106,7 @@ const PageModal = ({
     if (isEditMode) {
       const updateData: UpdatePageInput = {
         pageId: values.pageId,
-        projectId: selectedProject.projectId,
+        appId: selectedApp.appId,
         name: values.name,
         description: values.description,
         relativePath: values.relativePath,
@@ -116,7 +116,7 @@ const PageModal = ({
     } else {
       const createData: CreatePageInput = {
         pageId: values.pageId,
-        projectId: selectedProject.projectId,
+        appId: selectedApp.appId,
         name: values.name,
         description: values.description,
         relativePath: values.relativePath,
@@ -140,7 +140,7 @@ const PageModal = ({
           type="text"
           fullWidth
           variant="outlined"
-          value={selectedProject.name}
+          value={selectedApp.name}
           disabled
           sx={{ mb: 2 }}
         />
@@ -217,7 +217,7 @@ const PageModal = ({
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    {selectedProject.urlDomain.replace(/\/$/, "")}/
+                    {selectedApp.urlDomain.replace(/\/$/, "")}/
                   </InputAdornment>
                 ),
               }}

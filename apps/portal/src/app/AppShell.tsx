@@ -4,8 +4,8 @@ import { Outlet } from "react-router-dom";
 import { useAuth } from "@workops-suite/shared-auth";
 import { AppBarNavigation } from "@workops-suite/shared-navigation";
 import { NavigationDrawer } from "./Drawer";
-import ProjectModal from "../features/portal/components/modals/ProjectModal";
-import { useProjects } from "../features/portal/hooks/useProjects";
+import AppModal from "../features/portal/components/modals/AppModal";
+import { useApps } from "../features/portal/hooks/useApps";
 
 const appTitle = "ポータル";
 
@@ -14,8 +14,8 @@ export default function AppShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleDrawer = () => setDrawerOpen((prev) => !prev);
   const displayName = userInfo?.username;
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  const { projects } = useProjects();
+  const [isAppModalOpen, setIsAppModalOpen] = useState(false);
+  const { apps } = useApps();
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -26,13 +26,13 @@ export default function AppShell() {
         onSignOut={signOut}
       />
       <NavigationDrawer
-        projects={projects}
-        canCreateProject={userInfo.isGlobalAdmin === true}
+        apps={apps}
+        canCreateApp={userInfo.isGlobalAdmin === true}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onCreateProject={() => {
+        onCreateApp={() => {
           setDrawerOpen(false);
-          setIsProjectModalOpen(true);
+          setIsAppModalOpen(true);
         }}
       />
       <Box
@@ -45,9 +45,9 @@ export default function AppShell() {
         <Toolbar />
         <Outlet />
       </Box>
-      <ProjectModal
-        open={isProjectModalOpen}
-        onClose={() => setIsProjectModalOpen(false)}
+      <AppModal
+        open={isAppModalOpen}
+        onClose={() => setIsAppModalOpen(false)}
       />
     </Box>
   );

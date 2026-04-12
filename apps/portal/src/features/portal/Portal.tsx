@@ -13,26 +13,26 @@ import { getIcon } from "./utils/getIcon";
 import React, { useState } from "react";
 import { useSearchParams } from "react-router";
 import PageModal from "./components/modals/PageModal";
-import ProjectModal from "./components/modals/ProjectModal";
+import AppModal from "./components/modals/AppModal";
 import PageCard from "./components/PageCard";
 import PortalSkeleton from "./components/PortalSkeleton";
 import { usePages } from "./hooks/usePages";
-import { useProjects } from "./hooks/useProjects";
+import { useApps } from "./hooks/useApps";
 import {
   type PageDataType,
   type CreatePageInput,
   type UpdatePageInput,
-} from "./types/project";
+} from "./types/app";
 
 const Portal = () => {
-  const { projects, isLoading, deleteProject } = useProjects();
+  const { apps, isLoading, deleteApp } = useApps();
 
   const [searchParams] = useSearchParams();
-  const currentProjectId = searchParams.get("projectId");
+  const currentAppId = searchParams.get("appId");
 
   // 選択されたプロジェクトを計算
-  const selectedProject = currentProjectId
-    ? projects.find((p) => p.projectId === currentProjectId)
+  const selectedApp = currentAppId
+    ? apps.find((p) => p.appId === currentAppId)
     : undefined;
 
   // クエリパラメータでプロジェクトが指定されている場合は該当プロジェクトのみ、なければ全プロジェクトのページを取得
@@ -42,57 +42,57 @@ const Portal = () => {
     createPage,
     updatePage,
     deletePage,
-  } = usePages(currentProjectId || "ALL_PROJECTS");
+  } = usePages(currentAppId || "ALL_PROJECTS");
 
   // プロジェクト別にページをフィルタリング
-  const getPagesByProject = (projectId: string) => {
-    return allPages.filter((page) => page.projectId === projectId);
+  const getPagesByApp = (appId: string) => {
+    return allPages.filter((page) => page.appId === appId);
   };
 
   // モーダル状態管理
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [isAppModalOpen, setIsAppModalOpen] = useState(false);
   const [isPageModalOpen, setIsPageModalOpen] = useState(false);
-  const [editingProject, setEditingProject] =
-    useState<typeof selectedProject>(undefined);
+  const [editingApp, setEditingApp] =
+    useState<typeof selectedApp>(undefined);
   const [editingPage, setEditingPage] = useState<PageDataType | undefined>(
     undefined
   );
-  const [editingProjectForModal, setEditingProjectForModal] =
-    useState<typeof selectedProject>(undefined);
+  const [editingAppForModal, setEditingAppForModal] =
+    useState<typeof selectedApp>(undefined);
 
   // プロジェクト操作ハンドラー
-  const handleProjectEdit = (project: typeof selectedProject) => {
-    setEditingProject(project);
-    setIsProjectModalOpen(true);
+  const handleAppEdit = (app: typeof selectedApp) => {
+    setEditingApp(app);
+    setIsAppModalOpen(true);
   };
 
-  const handleProjectDelete = async (
-    projectId: string,
-    projectName: string
+  const handleAppDelete = async (
+    appId: string,
+    appName: string
   ) => {
     if (
       window.confirm(
-        `プロジェクト「${projectName}」を削除しますか？\n(注意: このプロジェクトに関連するページもすべて削除されます)`
+        `プロジェクト「${appName}」を削除しますか？\n(注意: このプロジェクトに関連するページもすべて削除されます)`
       )
     ) {
-      await deleteProject(projectId);
+      await deleteApp(appId);
     }
   };
 
   // ページ操作ハンドラー
   const handleOpenRegisterPageModal = (
     pageToEdit?: PageDataType,
-    projectForModal?: typeof selectedProject
+    appForModal?: typeof selectedApp
   ) => {
     setEditingPage(pageToEdit);
-    setEditingProjectForModal(projectForModal ?? selectedProject);
+    setEditingAppForModal(appForModal ?? selectedApp);
     setIsPageModalOpen(true);
   };
 
   const handleCloseRegisterPageModal = () => {
     setIsPageModalOpen(false);
     setEditingPage(undefined);
-    setEditingProjectForModal(undefined);
+    setEditingAppForModal(undefined);
   };
 
   const handlePageSubmit = async (
@@ -111,11 +111,11 @@ const Portal = () => {
 
   const handlePageDelete = async (
     pageId: string,
-    projectId: string,
+    appId: string,
     pageName: string
   ) => {
     if (window.confirm(`「${pageName}」ページを本当に削除しますか？`)) {
-      await deletePage(pageId, projectId);
+      await deletePage(pageId, appId);
     }
   };
 
@@ -124,14 +124,14 @@ const Portal = () => {
   }
 
   // 表示するプロジェクトを決定
-  const projectsToDisplay = projects.filter(
-    (p) => !currentProjectId || p.projectId === currentProjectId
+  const appsToDisplay = apps.filter(
+    (p) => !currentAppId || p.appId === currentAppId
   );
 
   return (
     <Box component="main" sx={{ flexGrow: 1, px: 4 }}>
-      {projectsToDisplay.map((project, index) => (
-        <React.Fragment key={project.projectId}>
+      {appsToDisplay.map((app, index) => (
+        <React.Fragment key={app.appId}>
           <Box
             sx={{
               mb: 3,
@@ -143,9 +143,9 @@ const Portal = () => {
           >
             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                {project.iconName && (
-                  <Box sx={{ mr: 1, color: project.color ?? "inherit" }}>
-                    {getIcon(project.iconName)}
+                {app.iconName && (
+                  <Box sx={{ mr: 1, color: app.color ?? "inherit" }}>
+                    {getIcon(app.iconName)}
                   </Box>
                 )}
                 <Typography
@@ -154,22 +154,22 @@ const Portal = () => {
                   gutterBottom
                   sx={{ mb: 0, mr: 1 }}
                 >
-                  {project.name}
+                  {app.name}
                 </Typography>
                 <Box>
                   <IconButton
-                    aria-label="edit project"
+                    aria-label="edit app"
                     size="small"
-                    onClick={() => handleProjectEdit(project)}
+                    onClick={() => handleAppEdit(app)}
                     sx={{ color: "text.secondary", p: "4px" }}
                   >
                     <EditIcon fontSize="inherit" />
                   </IconButton>
                   <IconButton
-                    aria-label="delete project"
+                    aria-label="delete app"
                     size="small"
                     onClick={() =>
-                      handleProjectDelete(project.projectId, project.name)
+                      handleAppDelete(app.appId, app.name)
                     }
                     sx={{ color: "text.secondary", p: "4px" }}
                   >
@@ -177,7 +177,7 @@ const Portal = () => {
                   </IconButton>
                 </Box>
               </Box>
-              {project.description && (
+              {app.description && (
                 <Typography
                   variant="body2"
                   color="text.secondary"
@@ -191,7 +191,7 @@ const Portal = () => {
                     lineHeight: 1.4,
                   }}
                 >
-                  {project.description}
+                  {app.description}
                 </Typography>
               )}
             </Box>
@@ -199,7 +199,7 @@ const Portal = () => {
             <Button
               variant="outlined"
               startIcon={<AddCircleOutlineIcon />}
-              onClick={() => handleOpenRegisterPageModal(undefined, project)}
+              onClick={() => handleOpenRegisterPageModal(undefined, app)}
               sx={{ flexShrink: 0 }}
             >
               ページ追加
@@ -213,40 +213,40 @@ const Portal = () => {
             </Box>
           ) : (
             <Grid container spacing={3} sx={{ mb: 4 }}>
-              {getPagesByProject(project.projectId).map((page) => (
+              {getPagesByApp(app.appId).map((page) => (
                 <PageCard
                   key={page.pageId}
                   page={page}
-                  projectColor={project.color}
-                  projectUrlDomain={project.urlDomain}
-                  onEdit={(page) => handleOpenRegisterPageModal(page, project)}
+                  appColor={app.color}
+                  appUrlDomain={app.urlDomain}
+                  onEdit={(page) => handleOpenRegisterPageModal(page, app)}
                   onDelete={handlePageDelete}
                 />
               ))}
             </Grid>
           )}
 
-          {index < projectsToDisplay.length - 1 && <Divider sx={{ my: 4 }} />}
+          {index < appsToDisplay.length - 1 && <Divider sx={{ my: 4 }} />}
         </React.Fragment>
       ))}
 
       {/* プロジェクト編集モーダル */}
-      <ProjectModal
-        open={isProjectModalOpen}
+      <AppModal
+        open={isAppModalOpen}
         onClose={() => {
-          setIsProjectModalOpen(false);
-          setEditingProject(undefined);
+          setIsAppModalOpen(false);
+          setEditingApp(undefined);
         }}
-        editingProject={editingProject}
+        editingApp={editingApp}
       />
 
       {/* ページ登録・編集モーダル */}
-      {editingProjectForModal && (
+      {editingAppForModal && (
         <PageModal
           open={isPageModalOpen}
           onClose={handleCloseRegisterPageModal}
           onSubmit={handlePageSubmit}
-          selectedProject={editingProjectForModal}
+          selectedApp={editingAppForModal}
           editingPage={editingPage}
         />
       )}

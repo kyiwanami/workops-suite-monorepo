@@ -186,17 +186,17 @@ const schema = a
     // =============================================
     // Portal Models
     // =============================================
-    Project: a
+    App: a
       .model({
-        projectId: a.id().required(),
+        appId: a.id().required(),
         name: a.string().required(),
         description: a.string(),
         urlDomain: a.string().required(), // ドメイン
         iconName: a.string(), // MUIアイコン
         color: a.string(), // カラーテーマ
-        pages: a.hasMany("Page", "projectId"), // ProjectからPageへのリレーションシップ
+        pages: a.hasMany("Page", "appId"), // AppからPageへのリレーションシップ
       })
-      .identifier(["projectId"])
+      .identifier(["appId"])
       .authorization((allow) => [allow.authenticated()]),
 
     Page: a
@@ -206,11 +206,11 @@ const schema = a
         description: a.string(),
         relativePath: a.string(), // 相対パス
         iconName: a.string(), // MUIアイコン
-        projectId: a.string().required(),
-        project: a.belongsTo("Project", "projectId"), // PageからProjectへのリレーションシップ
+        appId: a.string().required(),
+        app: a.belongsTo("App", "appId"), // PageからAppへのリレーションシップ
       })
-      .identifier(["pageId", "projectId"])
-      .secondaryIndexes((index) => [index("projectId")])
+      .identifier(["pageId", "appId"])
+      .secondaryIndexes((index) => [index("appId")])
       .authorization((allow) => [allow.authenticated()]),
 
     // =============================================
@@ -218,17 +218,17 @@ const schema = a
     // =============================================
     ChatSession: a
       .model({
-        projectId: a.string().required(),
+        appId: a.string().required(),
         name: a.string(),
         messages: a.hasMany("ChatMessage", "sessionId"),
       })
       .authorization((allow) => [allow.owner()])
-      .secondaryIndexes((index) => [index("projectId")]),
+      .secondaryIndexes((index) => [index("appId")]),
 
     ChatMessage: a
       .model({
         sessionId: a.id().required(),
-        projectId: a.string().required(),
+        appId: a.string().required(),
         role: a.ref("ChatRole").required(),
         content: a.string().required(),
         traces: a.json(),

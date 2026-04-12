@@ -5,19 +5,19 @@ import type {
   PageDataType,
   CreatePageInput,
   UpdatePageInput,
-} from "../types/project";
+} from "../types/app";
 import { useNotification } from "@workops-suite/shared-notification";
 
 const client = generateClient<Schema>();
 
-export const usePages = (projectId?: string) => {
+export const usePages = (appId?: string) => {
   const [pages, setPages] = useState<PageDataType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { showSuccess, showError } = useNotification();
 
   // 指定されたプロジェクトのページを監視
   useEffect(() => {
-    if (!projectId) {
+    if (!appId) {
       setPages([]);
       setIsLoading(false);
       return;
@@ -25,13 +25,13 @@ export const usePages = (projectId?: string) => {
 
     const subscriptions: Array<{ unsubscribe: () => void }> = [];
 
-    if (projectId === "ALL_PROJECTS") {
+    if (appId === "ALL_PROJECTS") {
       // 全プロジェクトのページを取得
       const pagesSub = client.models.Page.observeQuery().subscribe({
         next: (data) => {
           const formattedPages = data.items.map((page) => ({
             pageId: page.pageId,
-            projectId: page.projectId,
+            appId: page.appId,
             name: page.name,
             description: page.description,
             relativePath: page.relativePath,
@@ -51,12 +51,12 @@ export const usePages = (projectId?: string) => {
     } else {
       // 指定プロジェクトのページのみを監視
       const pagesSub = client.models.Page.observeQuery({
-        filter: { projectId: { eq: projectId } },
+        filter: { appId: { eq: appId } },
       }).subscribe({
         next: (data) => {
           const formattedPages = data.items.map((page) => ({
             pageId: page.pageId,
-            projectId: page.projectId,
+            appId: page.appId,
             name: page.name,
             description: page.description,
             relativePath: page.relativePath,
@@ -78,7 +78,7 @@ export const usePages = (projectId?: string) => {
     return () => {
       subscriptions.forEach((sub) => sub.unsubscribe());
     };
-  }, [projectId]);
+  }, [appId]);
 
   // ページ作成
   const createPage = async (
@@ -86,7 +86,7 @@ export const usePages = (projectId?: string) => {
   ): Promise<PageDataType | null> => {
     const { data, errors } = await client.models.Page.create({
       pageId: input.pageId,
-      projectId: input.projectId,
+      appId: input.appId,
       name: input.name,
       description: input.description,
       relativePath: input.relativePath,
@@ -135,14 +135,14 @@ export const usePages = (projectId?: string) => {
   // ページ削除
   const deletePage = async (
     pageId: string,
-    projectId: string
+    appId: string
   ): Promise<boolean> => {
     const page = pages.find((p) => p.pageId === pageId);
     const pageName = page?.name || pageId;
 
     const { data, errors } = await client.models.Page.delete({
       pageId,
-      projectId,
+      appId,
     });
 
     if (errors) {

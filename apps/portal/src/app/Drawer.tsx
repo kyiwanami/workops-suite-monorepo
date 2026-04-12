@@ -9,7 +9,6 @@ import {
   Box,
   Button,
   Divider,
-  Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
@@ -17,7 +16,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { Can } from "../shared/auth/ability";
 import { type AppAction, type AppSubject } from "../shared/auth/types";
-import type { ProjectDataType } from "../features/portal/types/project";
+import type { AppDataType } from "../features/portal/types/app";
 import { getIconComponent } from "../features/portal/utils/getIcon";
 
 type PublicDrawerItem = {
@@ -51,23 +50,23 @@ const drawerItems: DrawerItem[] = [
 ];
 
 type DrawerProps = {
-  projects: ProjectDataType[];
-  canCreateProject: boolean;
+  apps: AppDataType[];
+  canCreateApp: boolean;
   open: boolean;
   onClose: () => void;
-  onCreateProject: () => void;
+  onCreateApp: () => void;
 };
 
 export function NavigationDrawer({
-  projects,
-  canCreateProject,
+  apps,
+  canCreateApp,
   open,
   onClose,
-  onCreateProject,
+  onCreateApp,
 }: DrawerProps) {
   const location = useLocation();
-  const selectedProjectId = new URLSearchParams(location.search).get("projectId");
-  const sortedProjects = [...projects].sort((left, right) =>
+  const selectedAppId = new URLSearchParams(location.search).get("appId");
+  const sortedApps = [...apps].sort((left, right) =>
     left.name.localeCompare(right.name, "ja")
   );
 
@@ -90,7 +89,7 @@ export function NavigationDrawer({
                 key={item.path}
                 component={RouterLink}
                 to={item.path}
-                selected={location.pathname === item.path && !selectedProjectId}
+                selected={location.pathname === item.path && !selectedAppId}
                 onClick={onClose}
               >
                 <ListItemText primary={item.label} />
@@ -114,30 +113,30 @@ export function NavigationDrawer({
       </List>
       <Divider />
       <List sx={{ pt: 0 }}>
-        {sortedProjects.map((project) => {
-          const ProjectIcon = getIconComponent(project.iconName) ?? FiberManualRecordIcon;
+        {sortedApps.map((app) => {
+          const AppIcon = getIconComponent(app.iconName) ?? FiberManualRecordIcon;
 
           return (
-            <ListItem key={project.projectId} disablePadding>
+            <ListItem key={app.appId} disablePadding>
               <ListItemButton
                 component={RouterLink}
-                to={`/?projectId=${project.projectId}`}
+                to={`/?appId=${app.appId}`}
                 selected={
-                  location.pathname === "/" && selectedProjectId === project.projectId
+                  location.pathname === "/" && selectedAppId === app.appId
                 }
                 onClick={onClose}
                 sx={{ pl: 4 }}
               >
-                <ListItemIcon sx={{ minWidth: 32, color: project.color ?? "inherit" }}>
-                  <ProjectIcon fontSize="small" />
+                <ListItemIcon sx={{ minWidth: 32, color: app.color ?? "inherit" }}>
+                  <AppIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText primary={project.name} />
+                <ListItemText primary={app.name} />
               </ListItemButton>
             </ListItem>
           );
         })}
       </List>
-      {canCreateProject && (
+      {canCreateApp && (
         <>
           <Divider />
           <Box sx={{ p: 2 }}>
@@ -145,7 +144,7 @@ export function NavigationDrawer({
               variant="contained"
               fullWidth
               startIcon={<AddIcon />}
-              onClick={onCreateProject}
+              onClick={onCreateApp}
             >
               プロジェクト追加
             </Button>

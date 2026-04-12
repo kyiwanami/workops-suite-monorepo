@@ -11,28 +11,28 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { getIcon } from "../utils/getIcon";
-import type { PageDataType } from "../types/project";
+import type { PageDataType } from "../types/app";
 
 interface PageCardProps {
   page: PageDataType;
-  projectColor?: string | null;
-  projectUrlDomain: string;
+  appColor?: string | null;
+  appUrlDomain: string;
   onEdit?: (page: PageDataType) => void;
-  onDelete?: (pageId: string, projectId: string, pageName: string) => void;
+  onDelete?: (pageId: string, appId: string, pageName: string) => void;
   onClick?: (page: PageDataType) => void;
 }
 
 const PageCard = ({
   page,
-  projectColor,
-  projectUrlDomain,
+  appColor,
+  appUrlDomain,
   onEdit,
   onDelete,
 }: PageCardProps) => {
   // 完全なURLを生成
   const relativePath = page.relativePath ?? "";
-  const pageUrl = projectUrlDomain
-    ? `${projectUrlDomain}${relativePath ? "/" + relativePath : ""}`
+  const pageUrl = appUrlDomain
+    ? `${appUrlDomain}${relativePath ? "/" + relativePath : ""}`
     : "#";
 
   const pageIcon = getIcon(page.iconName);
@@ -44,7 +44,7 @@ const PageCard = ({
 
   const handleDelete = (event: React.MouseEvent) => {
     event.stopPropagation();
-    onDelete?.(page.pageId, page.projectId, page.name);
+    onDelete?.(page.pageId, page.appId, page.name);
   };
 
   return (
@@ -52,7 +52,7 @@ const PageCard = ({
       <Card
         sx={{
           height: 200,
-          borderTop: projectColor ? `4px solid ${projectColor}` : "none",
+          borderTop: appColor ? `4px solid ${appColor}` : "none",
           position: "relative",
           display: "flex",
           flexDirection: "column",
@@ -132,7 +132,7 @@ const PageCard = ({
               <Box
                 sx={{
                   mr: 0.8,
-                  color: projectColor ?? "inherit",
+                  color: appColor ?? "inherit",
                   display: "flex",
                   alignItems: "center",
                 }}

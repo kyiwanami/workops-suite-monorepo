@@ -7,7 +7,7 @@ export interface ChatBotUserInfo {
 
 export interface ChatBotConfig {
   /** セッションのフィルターキー（旧: packageJson.name） */
-  projectId: string;
+  appId: string;
   /** AgentCore エンドポイント URL */
   agentCoreUrl: string;
   /** 認証情報（アプリ側で useAuth() を呼んで渡す） */

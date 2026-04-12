@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import PageModal from "../../../../features/portal/components/modals/PageModal";
-import type { PageDataType, ProjectDataType } from "../../../../features/portal/types/project";
+import type { PageDataType, AppDataType } from "../../../../features/portal/types/app";
 import { renderWithProviders } from "../../../renderWithProviders";
 
-const selectedProject: ProjectDataType = {
-  projectId: "project-1",
+const selectedApp: AppDataType = {
+  appId: "app-1",
   name: "ポータル",
   description: "ポータルの説明",
   urlDomain: "https://portal.example.com",
@@ -16,7 +16,7 @@ const selectedProject: ProjectDataType = {
 
 const editingPage: PageDataType = {
   pageId: "page-1",
-  projectId: "project-1",
+  appId: "app-1",
   name: "トップ",
   description: "トップページ",
   relativePath: "top",
@@ -33,7 +33,7 @@ describe("PageModal", () => {
         open
         onClose={onClose}
         onSubmit={onSubmit}
-        selectedProject={selectedProject}
+        selectedApp={selectedApp}
       />
     );
 
@@ -58,7 +58,7 @@ describe("PageModal", () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith({
         pageId: "company",
-        projectId: "project-1",
+        appId: "app-1",
         name: "会社概要",
         description: "会社情報",
         relativePath: "about",
@@ -77,7 +77,7 @@ describe("PageModal", () => {
         open
         onClose={onClose}
         onSubmit={onSubmit}
-        selectedProject={selectedProject}
+        selectedApp={selectedApp}
       />
     );
 
@@ -96,7 +96,7 @@ describe("PageModal", () => {
         open
         onClose={onClose}
         onSubmit={onSubmit}
-        selectedProject={selectedProject}
+        selectedApp={selectedApp}
         editingPage={editingPage}
       />
     );
@@ -112,7 +112,7 @@ describe("PageModal", () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith({
         pageId: "page-1",
-        projectId: "project-1",
+        appId: "app-1",
         name: "トップ",
         description: "更新した説明",
         relativePath: "top",

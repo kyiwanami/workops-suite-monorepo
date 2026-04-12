@@ -3,11 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Portal from "../../../features/portal/Portal";
 import type {
   PageDataType,
-  ProjectDataType,
-} from "../../../features/portal/types/project";
+  AppDataType,
+} from "../../../features/portal/types/app";
 import { renderWithProviders } from "../../renderWithProviders";
 
-const useProjectsMock = vi.hoisted(() => vi.fn());
+const useAppsMock = vi.hoisted(() => vi.fn());
 const usePagesMock = vi.hoisted(() => vi.fn());
 const useSearchParamsMock = vi.hoisted(() => vi.fn());
 
@@ -15,8 +15,8 @@ vi.mock("react-router", () => ({
   useSearchParams: useSearchParamsMock,
 }));
 
-vi.mock("../../../features/portal/hooks/useProjects", () => ({
-  useProjects: useProjectsMock,
+vi.mock("../../../features/portal/hooks/useApps", () => ({
+  useApps: useAppsMock,
 }));
 
 vi.mock("../../../features/portal/hooks/usePages", () => ({
@@ -31,7 +31,7 @@ vi.mock("../../../features/portal/components/PageCard", () => ({
   }: {
     page: PageDataType;
     onEdit?: (page: PageDataType) => void;
-    onDelete?: (pageId: string, projectId: string, pageName: string) => void;
+    onDelete?: (pageId: string, appId: string, pageName: string) => void;
   }) => (
     <div data-testid={`page-card-${page.pageId}`}>
       <span>{page.name}</span>
@@ -40,7 +40,7 @@ vi.mock("../../../features/portal/components/PageCard", () => ({
       </button>
       <button
         type="button"
-        onClick={() => onDelete?.(page.pageId, page.projectId, page.name)}
+        onClick={() => onDelete?.(page.pageId, page.appId, page.name)}
       >
         delete-page
       </button>
@@ -51,18 +51,18 @@ vi.mock("../../../features/portal/components/PageCard", () => ({
 vi.mock("../../../features/portal/components/modals/PageModal", () => ({
   default: ({
     open,
-    selectedProject,
+    selectedApp,
     editingPage,
     onClose,
   }: {
     open: boolean;
-    selectedProject: ProjectDataType;
+    selectedApp: AppDataType;
     editingPage?: PageDataType | null;
     onClose: () => void;
   }) =>
     open ? (
       <div data-testid="page-modal">
-        <span>{selectedProject.name}</span>
+        <span>{selectedApp.name}</span>
         <span>{editingPage ? editingPage.name : "new-page"}</span>
         <button type="button" onClick={onClose}>
           close-page-modal
@@ -71,39 +71,39 @@ vi.mock("../../../features/portal/components/modals/PageModal", () => ({
     ) : null,
 }));
 
-vi.mock("../../../features/portal/components/modals/ProjectModal", () => ({
+vi.mock("../../../features/portal/components/modals/AppModal", () => ({
   default: ({
     open,
-    editingProject,
+    editingApp,
     onClose,
   }: {
     open: boolean;
-    editingProject?: ProjectDataType | null;
+    editingApp?: AppDataType | null;
     onClose: () => void;
   }) =>
     open ? (
-      <div data-testid="project-modal">
-        <span>{editingProject?.name ?? "new-project"}</span>
+      <div data-testid="app-modal">
+        <span>{editingApp?.name ?? "new-app"}</span>
         <button type="button" onClick={onClose}>
-          close-project-modal
+          close-app-modal
         </button>
       </div>
     ) : null,
 }));
 
-const project = {
-  projectId: "project-1",
-  name: "Portal Project",
+const app = {
+  appId: "app-1",
+  name: "Portal App",
   description: "Portal description",
   urlDomain: "https://example.com",
   iconName: "Home",
   color: "#1976d2",
   pages: [],
-} satisfies ProjectDataType;
+} satisfies AppDataType;
 
 const page = {
   pageId: "page-1",
-  projectId: "project-1",
+  appId: "app-1",
   name: "Home Page",
   description: "Home page description",
   relativePath: "home",
@@ -112,11 +112,11 @@ const page = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useSearchParamsMock.mockReturnValue([new URLSearchParams("?projectId=project-1"), vi.fn()]);
-  useProjectsMock.mockReturnValue({
-    projects: [project],
+  useSearchParamsMock.mockReturnValue([new URLSearchParams("?appId=app-1"), vi.fn()]);
+  useAppsMock.mockReturnValue({
+    apps: [app],
     isLoading: false,
-    deleteProject: vi.fn(),
+    deleteApp: vi.fn(),
   });
   usePagesMock.mockReturnValue({
     pages: [page],
@@ -135,27 +135,27 @@ describe("Portal", () => {
   it("プロジェクトとページを表示し、モーダルを開ける", () => {
     renderWithProviders(<Portal />);
 
-    expect(screen.getByText("Portal Project")).toBeInTheDocument();
+    expect(screen.getByText("Portal App")).toBeInTheDocument();
     expect(screen.getByText("Home Page")).toBeInTheDocument();
-    expect(usePagesMock).toHaveBeenCalledWith("project-1");
+    expect(usePagesMock).toHaveBeenCalledWith("app-1");
 
-    fireEvent.click(screen.getByRole("button", { name: "edit project" }));
-    expect(screen.getByTestId("project-modal")).toHaveTextContent("Portal Project");
+    fireEvent.click(screen.getByRole("button", { name: "edit app" }));
+    expect(screen.getByTestId("app-modal")).toHaveTextContent("Portal App");
 
     fireEvent.click(screen.getByRole("button", { name: "ページ追加" }));
     expect(screen.getByTestId("page-modal")).toHaveTextContent("new-page");
-    expect(screen.getByTestId("page-modal")).toHaveTextContent("Portal Project");
+    expect(screen.getByTestId("page-modal")).toHaveTextContent("Portal App");
   });
 
   it("削除確認で yes/no を分岐し、ページ削除も呼び出す", () => {
     const confirmSpy = vi.spyOn(window, "confirm");
-    const deleteProjectMock = vi.fn();
+    const deleteAppMock = vi.fn();
     const deletePageMock = vi.fn();
 
-    useProjectsMock.mockReturnValue({
-      projects: [project],
+    useAppsMock.mockReturnValue({
+      apps: [app],
       isLoading: false,
-      deleteProject: deleteProjectMock,
+      deleteApp: deleteAppMock,
     });
     usePagesMock.mockReturnValue({
       pages: [page],
@@ -168,15 +168,15 @@ describe("Portal", () => {
     renderWithProviders(<Portal />);
 
     confirmSpy.mockReturnValueOnce(false);
-    fireEvent.click(screen.getByRole("button", { name: "delete project" }));
-    expect(deleteProjectMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "delete app" }));
+    expect(deleteAppMock).not.toHaveBeenCalled();
 
     confirmSpy.mockReturnValueOnce(true);
-    fireEvent.click(screen.getByRole("button", { name: "delete project" }));
-    expect(deleteProjectMock).toHaveBeenCalledWith("project-1");
+    fireEvent.click(screen.getByRole("button", { name: "delete app" }));
+    expect(deleteAppMock).toHaveBeenCalledWith("app-1");
 
     confirmSpy.mockReturnValueOnce(true);
     fireEvent.click(screen.getByRole("button", { name: "delete-page" }));
-    expect(deletePageMock).toHaveBeenCalledWith("page-1", "project-1");
+    expect(deletePageMock).toHaveBeenCalledWith("page-1", "app-1");
   });
 });
