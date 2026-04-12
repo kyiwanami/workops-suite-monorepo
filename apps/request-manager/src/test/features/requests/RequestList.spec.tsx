@@ -40,7 +40,7 @@ vi.mock("../../../features/requests/hooks/useRequests", () => ({
         status: "draft",
         requestTypeId: "rt-1",
         title: "備品購入",
-        amount: 12000,
+        amount: null,
       },
       {
         id: "req-2",
@@ -106,5 +106,11 @@ describe("RequestList", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "新規申請" }));
     expect(screen.getByText("request-form:open")).toBeInTheDocument();
+  });
+
+  it("金額が未設定ならハイフンを表示する", () => {
+    renderWithProviders(<RequestList />);
+
+    expect(screen.getByText("-")).toBeInTheDocument();
   });
 });

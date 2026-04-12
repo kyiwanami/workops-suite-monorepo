@@ -38,7 +38,7 @@ const defaultValues: RequestFormValues = {
   requestTypeId: "",
   title: "",
   description: "",
-  amount: undefined,
+  amount: null,
 };
 
 export function RequestFormDialog({
@@ -255,9 +255,7 @@ export function RequestFormDialog({
                     name={field.name}
                     inputRef={field.ref}
                     disabled={loading}
-                    onValueChange={(value) =>
-                      field.onChange(value === null ? undefined : value)
-                    }
+                    onValueChange={(value) => field.onChange(value)}
                   >
                     <NumberField.Group
                       style={{

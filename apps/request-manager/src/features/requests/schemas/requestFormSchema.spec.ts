@@ -13,17 +13,13 @@ describe("requestFormSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("金額が未入力だと失敗する", () => {
+  it("金額が未入力でも通す", () => {
     const result = requestFormSchema.safeParse({
       requestTypeId: "request-type-1",
       title: "備品購入",
+      amount: null,
     });
 
-    expect(result.success).toBe(false);
-    if (result.success) {
-      throw new Error("expected validation error");
-    }
-
-    expect(result.error.issues[0]?.message).toBe("金額は必須です");
+    expect(result.success).toBe(true);
   });
 });

@@ -305,7 +305,9 @@ export function RequestDetail() {
               金額
             </Typography>
             <Typography variant="body2">
-              ¥{request.amount.toLocaleString("ja-JP")}
+              {request.amount === null || request.amount === undefined
+                ? "-"
+                : `¥${request.amount.toLocaleString("ja-JP")}`}
             </Typography>
           </Stack>
           <Stack spacing={0.5}>

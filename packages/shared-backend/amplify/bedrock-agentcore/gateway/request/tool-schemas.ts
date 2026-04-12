@@ -52,7 +52,7 @@ export const createRequestToolSchema = ToolSchema.fromInline([
         },
         amount: {
           type: SchemaDefinitionType.INTEGER,
-          description: "申請金額（必須）",
+          description: "申請金額（任意）",
         },
         description: {
           type: SchemaDefinitionType.STRING,
@@ -84,7 +84,6 @@ export const createRequestToolSchema = ToolSchema.fromInline([
         "requesterSub",
         "requestTypeId",
         "title",
-        "amount",
       ],
     },
   },

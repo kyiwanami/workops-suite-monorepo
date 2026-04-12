@@ -13,7 +13,7 @@ let requestValue:
       requestTypeId: string;
       status: "draft" | "submitted";
       title: string;
-      amount: number;
+      amount?: number | null;
       description?: string | null;
       createdAt?: string | null;
       submittedAt?: string | null;
@@ -214,5 +214,33 @@ describe("RequestDetail", () => {
     fireEvent.click(screen.getByRole("button", { name: "編集" }));
     expect(screen.getByText("edit:req-1")).toBeInTheDocument();
     expect(editDialogSpy).toHaveBeenCalledWith({ open: true, id: "req-1" });
+  });
+
+  it("金額が未設定ならハイフンを表示する", () => {
+    requestValue = {
+      id: "req-1",
+      requestTypeId: "rt-1",
+      status: "draft",
+      title: "備品購入",
+      amount: null,
+      description: "PC周辺機器",
+      createdAt: "2026-03-21T00:00:00.000Z",
+      submittedAt: null,
+    };
+
+    renderWithProviders(<RequestDetail />);
+
+    expect(screen.getByText("-")).toBeInTheDocument();
+
+    requestValue = {
+      id: "req-1",
+      requestTypeId: "rt-1",
+      status: "draft",
+      title: "備品購入",
+      amount: 12000,
+      description: "PC周辺機器",
+      createdAt: "2026-03-21T00:00:00.000Z",
+      submittedAt: null,
+    };
   });
 });

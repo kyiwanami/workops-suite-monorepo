@@ -17,7 +17,7 @@ interface CreateRequestInput {
   requestTypeId: string;
   status?: RequestStatus;
   title: string;
-  amount: number;
+  amount?: number | null;
   description?: string;
   submittedAt?: string;
   approvedAt?: string;
@@ -34,7 +34,6 @@ export const handler = async (event: CreateRequestInput) => {
     requestTypeId: event.requestTypeId,
     status: event.status ?? "draft",
     title: event.title,
-    amount: event.amount,
     description: event.description,
     submittedAt: event.submittedAt,
     approvedAt: event.approvedAt,
@@ -42,6 +41,9 @@ export const handler = async (event: CreateRequestInput) => {
     withdrawnAt: event.withdrawnAt,
     returnedAt: event.returnedAt,
   };
+  if (event.amount !== undefined) {
+    createInput.amount = event.amount;
+  }
 
   const { data, errors } = await client.models.Request.create(createInput);
 

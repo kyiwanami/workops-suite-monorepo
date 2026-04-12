@@ -9,8 +9,8 @@ export const requestFormSchema = z.object({
       invalid_type_error: "金額は数値で入力してください",
     })
     .finite("金額は数値で入力してください")
-    .optional()
-    .refine((value) => value !== undefined, "金額は必須です"),
+    .nullable()
+    .optional(),
 });
 
 export type RequestFormValues = z.input<typeof requestFormSchema>;

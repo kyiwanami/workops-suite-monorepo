@@ -24,7 +24,7 @@ interface UpdatePatch {
   requestTypeId?: string;
   title?: string;
   description?: string;
-  amount?: number;
+  amount?: number | null;
 }
 
 interface UpdateRequestCommand {

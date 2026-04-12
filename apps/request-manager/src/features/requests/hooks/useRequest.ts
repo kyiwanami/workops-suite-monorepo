@@ -33,7 +33,7 @@ interface RequestCreateDraftInput {
   requestTypeId: string;
   title: string;
   description?: string | null;
-  amount: number;
+  amount?: number | null;
 }
 
 export function useRequest(id?: string) {

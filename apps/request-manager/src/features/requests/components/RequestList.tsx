@@ -164,7 +164,9 @@ export function RequestList() {
                   </TableCell>
                   <TableCell>{request.title}</TableCell>
                   <TableCell align="right">
-                    {request.amount.toLocaleString("ja-JP")}
+                    {request.amount === null || request.amount === undefined
+                      ? "-"
+                      : request.amount.toLocaleString("ja-JP")}
                   </TableCell>
                 </TableRow>
               ))}

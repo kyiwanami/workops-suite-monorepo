@@ -334,7 +334,7 @@ const schema = a
         status: a.ref("RequestStatusCode").required(),
         title: a.string().required(),
         description: a.string(),
-        amount: a.integer().required(),
+        amount: a.integer(),
         submittedAt: a.datetime(),
         approvedAt: a.datetime(),
         approverSub: a.string(),
