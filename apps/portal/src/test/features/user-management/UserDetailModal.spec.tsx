@@ -6,12 +6,37 @@ import type {
   CognitoGroupType,
   UserDetailType,
 } from "../../../features/user-management/types";
+import type { Department } from "@workops-suite/shared-department";
 
 const useUserManagementMock = vi.hoisted(() => vi.fn());
+const useDepartmentsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../features/user-management/hooks/useUserManagement", () => ({
   useUserManagement: useUserManagementMock,
 }));
+
+vi.mock("@workops-suite/shared-department", () => ({
+  useDepartments: useDepartmentsMock,
+}));
+
+const departments = [
+  {
+    code: "DEPT01",
+    name: "営業部",
+    sortOrder: 1,
+    notes: null,
+    createdAt: "2025-01-01T00:00:00.000Z",
+    updatedAt: "2025-01-02T00:00:00.000Z",
+  },
+  {
+    code: "DEPT02",
+    name: "総務部",
+    sortOrder: 2,
+    notes: null,
+    createdAt: "2025-02-01T00:00:00.000Z",
+    updatedAt: "2025-02-02T00:00:00.000Z",
+  },
+] satisfies Department[];
 
 const currentGroups = [
   {
@@ -75,6 +100,10 @@ const buildHookValue = () => {
 beforeEach(() => {
   vi.clearAllMocks();
   useUserManagementMock.mockReturnValue(buildHookValue());
+  useDepartmentsMock.mockReturnValue({
+    departments,
+    loading: false,
+  });
 });
 
 afterEach(() => {
@@ -103,9 +132,14 @@ describe("UserDetailModal", () => {
     expect(currentGroupSection).not.toBeNull();
     if (currentGroupSection) {
       expect(
-        within(currentGroupSection).getByText("DEPT01_viewer")
+        within(currentGroupSection).getByText("営業部 / 閲覧者")
       ).toBeInTheDocument();
     }
+
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "グループを選択" }));
+
+    expect(screen.getByRole("option", { name: "営業部 / 閲覧者" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "総務部 / 管理者" })).toBeInTheDocument();
   });
 
   it("無効化確認から更新処理を呼び出す", async () => {
@@ -152,6 +186,32 @@ describe("UserDetailModal", () => {
     await waitFor(() => {
       expect(hookValue.deleteUser).toHaveBeenCalledWith({ username: "alice" });
       expect(onClose).toHaveBeenCalledWith(true);
+    });
+  });
+
+  it("論理名表示でも物理名でグループ変更を呼び出す", async () => {
+    const hookValue = buildHookValue();
+    useUserManagementMock.mockReturnValue(hookValue);
+    const onClose = vi.fn();
+
+    renderWithProviders(
+      <UserDetailModal open user={enabledUser} onClose={onClose} />
+    );
+
+    await waitFor(() => {
+      expect(hookValue.fetchGroupsForUser).toHaveBeenCalled();
+    });
+
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "グループを選択" }));
+    fireEvent.click(screen.getByRole("option", { name: "総務部 / 管理者" }));
+    fireEvent.click(screen.getByRole("button", { name: "変更する" }));
+
+    await waitFor(() => {
+      expect(hookValue.assignUserGroup).toHaveBeenCalledWith(
+        "alice",
+        "DEPT02_manager",
+        "DEPT01_viewer"
+      );
     });
   });
 });

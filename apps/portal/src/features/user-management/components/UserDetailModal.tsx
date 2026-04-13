@@ -18,13 +18,15 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { Delete as DeleteIcon } from "@mui/icons-material";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useDepartments } from "@workops-suite/shared-department";
 import { useUserManagement } from "../hooks/useUserManagement";
 import {
   userStatusToJapanese,
   userEnabledStatusToJapanese,
 } from "../utils/userStatusMapper";
 import { type UserDetailType, type CognitoGroupType } from "../types";
+import { resolveCognitoGroup } from "../../../shared/auth/resolveCognitoGroup";
 
 /** グループ名が {DeptCode}_{ROLE} 形式か判定 */
 const isDeptRoleGroup = (groupName: string): boolean =>
@@ -32,6 +34,17 @@ const isDeptRoleGroup = (groupName: string): boolean =>
 
 /** admin グループか判定 */
 const isAdminsGroup = (groupName: string): boolean => groupName === "admin";
+
+const roleToJapanese = (role: "viewer" | "editor" | "manager"): string => {
+  switch (role) {
+    case "viewer":
+      return "閲覧者";
+    case "editor":
+      return "編集者";
+    case "manager":
+      return "管理者";
+  }
+};
 
 interface UserDetailModalProps {
   open: boolean;
@@ -51,6 +64,7 @@ export const UserDetailModal = ({
     fetchAllGroups,
     assignUserGroup,
   } = useUserManagement();
+  const { departments } = useDepartments();
   const [statusChangeConfirmOpen, setStatusChangeConfirmOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
@@ -66,11 +80,31 @@ export const UserDetailModal = ({
       (g) => isDeptRoleGroup(g.groupName) || isAdminsGroup(g.groupName)
     )?.groupName ?? null;
 
-  const loadGroups = useCallback(async () => {
-    if (!user) return;
+  // 画面表示用の論理名は、解決済みオブジェクトから都度組み立てる。
+  const buildGroupLabel = (groupName: string): string => {
+    const resolvedGroup = resolveCognitoGroup(groupName, departments);
+    if (!resolvedGroup) {
+      return groupName;
+    }
+
+    if (resolvedGroup.isAdmin) {
+      return "システム管理者";
+    }
+
+    if (!resolvedGroup.departmentCode || !resolvedGroup.role) {
+      return groupName;
+    }
+
+    const departmentLabel =
+      resolvedGroup.departmentName ?? resolvedGroup.departmentCode;
+
+    return `${departmentLabel} / ${roleToJapanese(resolvedGroup.role)}`;
+  };
+
+  const loadGroups = async (targetUser: UserDetailType) => {
     setGroupsLoading(true);
     const [groups, all] = await Promise.all([
-      fetchGroupsForUser(user.username),
+      fetchGroupsForUser(targetUser.username),
       fetchAllGroups(),
     ]);
     setUserGroups(groups);
@@ -80,13 +114,13 @@ export const UserDetailModal = ({
     );
     setSelectedGroup(current?.groupName ?? "");
     setGroupsLoading(false);
-  }, [user, fetchGroupsForUser, fetchAllGroups]);
+  };
 
   useEffect(() => {
     if (open && user) {
-      loadGroups();
+      void loadGroups(user);
     }
-  }, [open, user, loadGroups]);
+  }, [open, user]);
 
   if (!user) return null;
 
@@ -117,7 +151,7 @@ export const UserDetailModal = ({
       currentDeptGroup
     );
     if (success) {
-      await loadGroups();
+      await loadGroups(user);
     }
   };
 
@@ -204,7 +238,7 @@ export const UserDetailModal = ({
                   </Typography>
                   {currentDeptGroup ? (
                     <Chip
-                      label={currentDeptGroup}
+                      label={buildGroupLabel(currentDeptGroup)}
                       color="primary"
                       size="small"
                     />
@@ -231,7 +265,7 @@ export const UserDetailModal = ({
                           key={group.groupName}
                           value={group.groupName}
                         >
-                          {group.groupName}
+                          {buildGroupLabel(group.groupName)}
                         </MenuItem>
                       ))}
                       {allGroups.length === 0 && (
