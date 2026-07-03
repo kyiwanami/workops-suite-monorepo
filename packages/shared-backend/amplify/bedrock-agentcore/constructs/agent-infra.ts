@@ -8,7 +8,6 @@ import {
   MCPProtocolVersion,
   Memory,
   MemoryStrategy,
-  BrowserCustom,
 } from "aws-cdk-lib/aws-bedrockagentcore";
 import {
   Role,
@@ -20,13 +19,12 @@ import {
 
 /**
  * AgentCore Infrastructure Construct
- * Gateway, Memory, Browserを一元管理するコンストラクト
+ * Gateway, Memoryを一元管理するコンストラクト
  */
 export class AgentCoreInfrastructure extends Construct {
   public readonly gateway: Gateway;
   public readonly gatewayName: string;
   public readonly memory: Memory;
-  public readonly browser: BrowserCustom;
 
   constructor(
     scope: Construct,
@@ -48,7 +46,6 @@ export class AgentCoreInfrastructure extends Construct {
 
     this.gatewayName = `${projectPathPrefix}-gateway`;
     const memoryName = `${projectPathPrefix.replace(/-/g, "_")}_memory`;
-    const browserName = `${projectPathPrefix.replace(/-/g, "_")}_browser`;
 
     // 1. Gateway 実行用ロール
     const gatewayRole = new Role(this, "GatewayRole", {
@@ -98,13 +95,7 @@ export class AgentCoreInfrastructure extends Construct {
       ],
     });
 
-    // 3. Browser
-    this.browser = new BrowserCustom(this, "AgentBrowser", {
-      browserCustomName: browserName,
-      description: "Browser for fetching web information",
-    });
-
-    // 4. Gateway（MCP Server統合）
+    // 3. Gateway（MCP Server統合）
     this.gateway = new Gateway(this, "AgentGateway", {
       gatewayName: this.gatewayName,
       role: gatewayRole,
@@ -123,7 +114,6 @@ export class AgentCoreInfrastructure extends Construct {
 
     // 依存関係の明示化
     this.gateway.node.addDependency(this.memory);
-    this.gateway.node.addDependency(this.browser);
 
     // Gateway基本権限
     gatewayRole.addToPolicy(

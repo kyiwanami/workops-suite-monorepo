@@ -1,13 +1,19 @@
+import { execFileSync } from "child_process";
+import { mkdirSync } from "fs";
+import { createRequire } from "module";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { Construct } from "constructs";
-import { Asset } from "aws-cdk-lib/aws-s3-assets";
 import * as cdk from "aws-cdk-lib";
 import {
-  BrowserCustom,
-  CfnRuntime,
+  AgentCoreRuntime,
+  AgentRuntimeArtifact,
   Gateway,
   Memory,
+  ProtocolType,
+  Runtime,
+  RuntimeAuthorizerConfiguration,
+  RuntimeNetworkConfiguration,
 } from "aws-cdk-lib/aws-bedrockagentcore";
 import {
   Effect,
@@ -17,6 +23,30 @@ import {
 } from "aws-cdk-lib/aws-iam";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const runtimeAssetPath = join(__dirname, "runtime", "asset");
+const runtimeEntry = join(__dirname, "runtime", "src", "server.ts");
+const runtimeOutput = join(runtimeAssetPath, "server.js");
+const esbuildBin = require.resolve("esbuild/bin/esbuild");
+
+const buildRuntimeAsset = (): void => {
+  mkdirSync(runtimeAssetPath, { recursive: true });
+  execFileSync(
+    process.execPath,
+    [
+      esbuildBin,
+      runtimeEntry,
+      "--bundle",
+      "--platform=node",
+      "--target=node22",
+      "--format=esm",
+      `--outfile=${runtimeOutput}`,
+    ],
+    {
+      stdio: "inherit",
+    },
+  );
+};
 
 interface AgentCoreStackProps {
   projectPathPrefix: string;
@@ -25,7 +55,6 @@ interface AgentCoreStackProps {
   userPoolClientId: string;
   gateway: Gateway;
   memory: Memory;
-  browser: BrowserCustom;
 }
 
 export class AgentCoreStack extends Construct {
@@ -41,7 +70,6 @@ export class AgentCoreStack extends Construct {
       userPoolClientId,
       gateway,
       memory,
-      browser,
     } = props;
 
     const gatewayUrl = gateway.gatewayUrl;
@@ -54,23 +82,13 @@ export class AgentCoreStack extends Construct {
       throw new Error("Memory ID is required");
     }
 
-    const browserId = browser.browserId;
-    if (browserId === undefined || browserId.length === 0) {
-      throw new Error("Browser ID is required");
-    }
-
     const stack = cdk.Stack.of(this);
-    const runtimeAsset = new Asset(this, "RuntimeCodeAsset", {
-      path: join(__dirname, "runtime", "asset"),
-    });
     const runtimeRole = new Role(this, "RuntimeExecutionRole", {
       assumedBy: new ServicePrincipal("bedrock-agentcore.amazonaws.com"),
       description: `AgentCore Runtime execution role for ${projectPathPrefix}`,
     });
 
-    runtimeAsset.grantRead(runtimeRole);
-
-    // RuntimeからBedrock、Memory、Browserへアクセスする最小の実行権限を付与する。
+    // RuntimeからBedrock、Memory、Gatewayへアクセスする最小の実行権限を付与する。
     runtimeRole.addToPolicy(
       new PolicyStatement({
         actions: [
@@ -86,8 +104,8 @@ export class AgentCoreStack extends Construct {
         resources: [
           `arn:${stack.partition}:bedrock-agentcore:${region}:${stack.account}:memory/${memoryId}*`,
           `arn:${stack.partition}:bedrock-agentcore:${region}:${stack.account}:session/*`,
-          browser.browserArn,
-          `${browser.browserArn}/*`,
+          gateway.gatewayArn,
+          `${gateway.gatewayArn}/*`,
         ],
       }),
     );
@@ -107,43 +125,33 @@ export class AgentCoreStack extends Construct {
       }),
     );
 
-    const agentRuntime = new CfnRuntime(this, "WorkopsSuiteAgentRuntime", {
-      agentRuntimeName: projectPathPrefix.replace(/-/g, "_"),
-      roleArn: runtimeRole.roleArn,
-      agentRuntimeArtifact: {
-        codeConfiguration: {
-          code: {
-            s3: {
-              bucket: runtimeAsset.s3BucketName,
-              prefix: runtimeAsset.s3ObjectKey,
-            },
-          },
-          entryPoint: ["node", "server.js"],
-          runtime: "NODE_22",
-        },
-      },
-      authorizerConfiguration: {
-        customJwtAuthorizer: {
-          discoveryUrl: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/openid-configuration`,
-          allowedClients: [userPoolClientId],
-        },
-      },
+    buildRuntimeAsset();
+
+    const agentRuntime = new Runtime(this, "WorkopsSuiteAgentRuntime", {
+      runtimeName: projectPathPrefix.replace(/-/g, "_"),
+      executionRole: runtimeRole,
+      agentRuntimeArtifact: AgentRuntimeArtifact.fromCodeAsset({
+        path: runtimeAssetPath,
+        runtime: AgentCoreRuntime.NODE_22,
+        entrypoint: ["node", "server.js"],
+      }),
+      authorizerConfiguration: RuntimeAuthorizerConfiguration.usingJWT(
+        `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/openid-configuration`,
+        [userPoolClientId],
+      ),
       environmentVariables: {
         AWS_REGION: region,
         AGENTCORE_GATEWAY_URL: gatewayUrl,
         AGENTCORE_MEMORY_ID: memoryId,
-        BROWSER_IDENTIFIER: browserId,
       },
-      networkConfiguration: {
-        networkMode: "PUBLIC",
-      },
-      protocolConfiguration: "HTTP",
+      networkConfiguration: RuntimeNetworkConfiguration.usingPublicNetwork(),
+      protocolConfiguration: ProtocolType.HTTP,
       requestHeaderConfiguration: {
-        requestHeaderAllowlist: ["Authorization"],
+        allowlistedHeaders: ["Authorization"],
       },
     });
 
     agentRuntime.node.addDependency(runtimeRole);
-    this.runtimeArn = agentRuntime.attrAgentRuntimeArn;
+    this.runtimeArn = agentRuntime.agentRuntimeArn;
   }
 }

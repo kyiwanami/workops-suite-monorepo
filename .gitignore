@@ -2,6 +2,7 @@ node_modules/
 dist/
 .amplify/
 amplify_outputs.json
+packages/shared-backend/amplify/bedrock-agentcore/runtime/asset/
 .env
 *.local
 __pycache__

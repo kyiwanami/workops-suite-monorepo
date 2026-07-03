@@ -6,7 +6,6 @@ import {
   jwtPayloadSchema,
   type AgentResponse,
   type InvocationBody,
-  type RuntimeConfig,
 } from "./types.js";
 
 // AgentCore Runtime公式SDKのHTTP serverを起動し、JWT subをactorIdとしてagentへ渡す。
@@ -28,15 +27,11 @@ const processInvocation = async (
       actorId: jwtPayload.sub,
       authHeader,
     },
-    config(),
+    requireEnv("AWS_REGION"),
+    requireEnv("AGENTCORE_MEMORY_ID"),
+    requireEnv("AGENTCORE_GATEWAY_URL"),
   );
 };
-
-const config = (): RuntimeConfig => ({
-  region: requireEnv("AWS_REGION"),
-  memoryId: requireEnv("AGENTCORE_MEMORY_ID"),
-  gatewayUrl: requireEnv("AGENTCORE_GATEWAY_URL"),
-});
 
 const requireEnv = (name: string): string => {
   const value = process.env[name];

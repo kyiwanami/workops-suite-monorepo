@@ -1,8 +1,20 @@
 import { z } from "zod";
-import type { Event, MemoryRecordSummary } from "@aws-sdk/client-bedrock-agentcore";
-import { DocumentFormat } from "@aws-sdk/client-bedrock-runtime";
 
-export const documentFormatSchema = z.enum(DocumentFormat);
+const documentFormats = [
+  "pdf",
+  "csv",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+  "html",
+  "txt",
+  "md",
+  "json",
+  "xml",
+] as const;
+
+export const documentFormatSchema = z.enum(documentFormats);
 
 export const attachmentSchema = z.object({
   name: z.string().min(1),
@@ -37,6 +49,7 @@ export const jwtPayloadSchema = z.object({
   sub: z.string().min(1),
 });
 
+export type DocumentFormat = z.infer<typeof documentFormatSchema>;
 export type Attachment = z.infer<typeof attachmentSchema>;
 export type InvocationBody = z.infer<typeof invocationSchema>;
 
@@ -51,15 +64,4 @@ export interface AgentRequest {
 export interface AgentResponse {
   answer: string;
   sessionId: string;
-}
-
-export interface MemoryContext {
-  recentEvents: Event[];
-  relevantMemories: MemoryRecordSummary[];
-}
-
-export interface RuntimeConfig {
-  region: string;
-  memoryId: string;
-  gatewayUrl: string;
 }
