@@ -1,4 +1,4 @@
-import { Buffer } from "buffer";
+import { jwtDecode } from "jwt-decode";
 import { BedrockAgentCoreApp, type RequestContext } from "bedrock-agentcore/runtime";
 import { runAgent } from "./agent.js";
 import {
@@ -18,7 +18,10 @@ const processInvocation = async (
     throw new Error("Authorization header is required");
   }
 
-  const jwtPayload = jwtPayloadSchema.parse(JSON.parse(decodeJwtPayload(authHeader)));
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length)
+    : authHeader;
+  const jwtPayload = jwtPayloadSchema.parse(jwtDecode(token));
   return runAgent(
     {
       query: request.query,
@@ -39,25 +42,6 @@ const requireEnv = (name: string): string => {
     throw new Error(`${name} is required`);
   }
   return value;
-};
-
-const decodeJwtPayload = (authHeader: string): string => {
-  const token = authHeader.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length)
-    : authHeader;
-  const parts = token.split(".");
-  if (parts.length !== 3) {
-    throw new Error("Authorization header does not contain a valid JWT");
-  }
-
-  const payload = parts[1];
-  if (payload === undefined || payload.length === 0) {
-    throw new Error("Authorization header does not contain a JWT payload");
-  }
-
-  const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-  const paddingLength = (4 - (normalized.length % 4)) % 4;
-  return Buffer.from(`${normalized}${"=".repeat(paddingLength)}`, "base64").toString("utf8");
 };
 
 const app = new BedrockAgentCoreApp({

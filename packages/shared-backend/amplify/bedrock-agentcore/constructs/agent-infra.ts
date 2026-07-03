@@ -1,6 +1,7 @@
 import { Construct } from "constructs";
 import { Stack, Duration } from "aws-cdk-lib";
 import {
+  CfnGateway,
   Gateway,
   GatewayAuthorizer,
   GatewayProtocol,
@@ -111,6 +112,17 @@ export class AgentCoreInfrastructure extends Construct {
         supportedVersions: [MCPProtocolVersion.MCP_2025_06_18],
       }),
     });
+
+    // Gateway の Cedar policy 評価を CloudFormation 管理の設定として有効化する。
+    const res = this.gateway.node.defaultChild;
+    if (res instanceof CfnGateway) {
+      res.policyEngineConfiguration = {
+        arn: policyEngineArn,
+        mode: "ENFORCE",
+      };
+    } else {
+      throw new Error("AgentCore Gateway L1 resource is required");
+    }
 
     // 依存関係の明示化
     this.gateway.node.addDependency(this.memory);

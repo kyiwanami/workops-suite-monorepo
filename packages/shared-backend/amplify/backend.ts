@@ -52,7 +52,6 @@ import { createGatewayTargets as createAssetGatewayTargets } from "./bedrock-age
 import { createGatewayTargets as createRequestGatewayTargets } from "./bedrock-agentcore/gateway/request/resource";
 import {
   createGatewayPolicyResources,
-  createPolicyEngineAttachmentResource,
 } from "./bedrock-agentcore/policy/resource";
 
 // ブランチ名取得
@@ -373,7 +372,6 @@ backend.requestKbSearch.addEnvironment(
 // ==================================================
 const assetGatewayTargetsStack = backend.createStack("AssetGatewayTargetsStack");
 const requestGatewayTargetsStack = backend.createStack("RequestGatewayTargetsStack");
-const attachPolicyEngineStack = backend.createStack("AttachPolicyEngineStack");
 const assetGatewayPolicyStack = backend.createStack("AssetGatewayPolicyStack");
 const requestGatewayPolicyStack = backend.createStack("RequestGatewayPolicyStack");
 
@@ -407,20 +405,11 @@ const requestPolicies = createRequestGatewayTargets({
   requestTypeListLambda: backend.requestTypeToolList.resources.lambda,
 });
 
-const policyEngineAttachmentResource = createPolicyEngineAttachmentResource({
-  scope: attachPolicyEngineStack,
-  branchName,
-  gatewayId: agentCoreInfrastructure.gateway.gatewayId,
-  gatewayRoleArn: agentCoreInfrastructure.gateway.role.roleArn,
-  policyEngineArn: policyEngine.policyEngineArn,
-});
-
 createGatewayPolicyResources({
   scope: assetGatewayPolicyStack,
   branchName,
   policyEngineId: policyEngine.policyEngineId,
   policies: assetPolicies,
-  attachmentDependency: policyEngineAttachmentResource,
 });
 
 createGatewayPolicyResources({
@@ -428,13 +417,13 @@ createGatewayPolicyResources({
   branchName,
   policyEngineId: policyEngine.policyEngineId,
   policies: requestPolicies,
-  attachmentDependency: policyEngineAttachmentResource,
 });
 
-attachPolicyEngineStack.addDependency(assetGatewayTargetsStack);
-attachPolicyEngineStack.addDependency(requestGatewayTargetsStack);
-assetGatewayPolicyStack.addDependency(attachPolicyEngineStack);
-requestGatewayPolicyStack.addDependency(attachPolicyEngineStack);
+// Cedar policy は Gateway target の action schema 登録後に検証される。
+assetGatewayPolicyStack.addDependency(assetGatewayTargetsStack);
+assetGatewayPolicyStack.addDependency(requestGatewayTargetsStack);
+requestGatewayPolicyStack.addDependency(assetGatewayTargetsStack);
+requestGatewayPolicyStack.addDependency(requestGatewayTargetsStack);
 
 // ==================================================
 // カスタム出力: AgentCore Runtime ARN

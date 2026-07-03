@@ -8,16 +8,15 @@
     "sandbox": "ampx sandbox"
   },
   "dependencies": {
-    "@aws-cdk/aws-bedrock-agentcore-alpha": "2.261.0-alpha.0",
-    "@aws-sdk/client-bedrock-agent": "3.1078.0",
+    "@aws-sdk/client-bedrock-agent": "3.1079.0",
     "@aws-sdk/client-bedrock-agent-runtime": "3.1079.0",
     "@aws-sdk/client-bedrock-agentcore": "3.1079.0",
-    "@aws-sdk/client-bedrock-agentcore-control": "3.1079.0",
-    "@aws-sdk/client-s3": "3.1078.0",
+    "@aws-sdk/client-s3": "3.1079.0",
     "@modelcontextprotocol/sdk": "1.29.0",
     "@strands-agents/sdk": "1.7.0",
     "aws-amplify": "^6.15.9",
     "bedrock-agentcore": "0.4.0",
+    "jwt-decode": "^4.0.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
