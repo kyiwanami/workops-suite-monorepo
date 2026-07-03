@@ -9,7 +9,7 @@ import {
   Memory,
   MemoryStrategy,
   BrowserCustom,
-} from "@aws-cdk/aws-bedrock-agentcore-alpha";
+} from "aws-cdk-lib/aws-bedrockagentcore";
 import {
   Role,
   ServicePrincipal,
@@ -82,15 +82,15 @@ export class AgentCoreInfrastructure extends Construct {
       expirationDuration: Duration.days(90),
       memoryStrategies: [
         MemoryStrategy.usingSemantic({
-          name: "Semantic",
+          strategyName: "Semantic",
           namespaces: ["/app/semantic/actors/{actorId}"],
         }),
         MemoryStrategy.usingUserPreference({
-          name: "Preference",
+          strategyName: "Preference",
           namespaces: ["/app/preference/actors/{actorId}"],
         }),
         MemoryStrategy.usingSummarization({
-          name: "Summarization",
+          strategyName: "Summarization",
           namespaces: [
             "/app/summarization/actors/{actorId}/sessions/{sessionId}",
           ],

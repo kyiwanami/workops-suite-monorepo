@@ -50,6 +50,11 @@ export interface Attachment {
   base64: string;
 }
 
+interface AgentCoreResult {
+  answer: string;
+  traces?: string | null;
+}
+
 export function useChatBot(sessionId: string) {
   const { appId, agentCoreUrl, userInfo } = useChatBotConfig();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -217,7 +222,7 @@ export function useChatBot(sessionId: string) {
 申請者のID（Cognito sub）: ${requesterSub}
 所属部門コード: ${departmentId}`;
 
-    let result: { answer?: string; traces?: string | null } | null = null;
+    let result: AgentCoreResult | null = null;
     try {
       const response = await fetch(agentCoreUrl, {
         method: "POST",
@@ -260,7 +265,7 @@ export function useChatBot(sessionId: string) {
     // AI Message作成
     const aiMessageId = uuidv4();
     const aiCreatedAt = new Date().toISOString();
-    const aiAnswer = result.answer || "回答を生成できませんでした";
+    const aiAnswer = result.answer;
     const aiMsg: Message = {
       id: aiMessageId,
       role: "assistant",
