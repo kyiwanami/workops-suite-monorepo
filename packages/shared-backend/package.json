@@ -5,7 +5,7 @@
   "scripts": {
     "build:runtime": "esbuild amplify/bedrock-agentcore/runtime/src/server.ts --bundle --platform=node --target=node22 --format=esm --outfile=amplify/bedrock-agentcore/runtime/asset/server.js",
     "build": "npm run build:runtime && tsc -p amplify/tsconfig.json --noEmit",
-    "sandbox": "ampx sandbox"
+    "sandbox": "npm run build:runtime && ampx sandbox"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-agent": "3.1079.0",

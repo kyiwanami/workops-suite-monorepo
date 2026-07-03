@@ -73,7 +73,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetCreateLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const createAssetDependencies: IConstruct[] = [createAssetPermission];
@@ -102,7 +101,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetKbSearchLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const kbSearchDependencies: IConstruct[] = [kbSearchPermission];
@@ -133,7 +131,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetUpdateLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const updateAssetDependencies: IConstruct[] = [updateAssetPermission];
@@ -162,7 +159,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetDeleteLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const deleteAssetDependencies: IConstruct[] = [deleteAssetPermission];
@@ -188,7 +184,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetListLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const listAssetsDependencies: IConstruct[] = [listAssetsPermission];
@@ -219,7 +214,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetGetLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const getAssetDependencies: IConstruct[] = [getAssetPermission];
@@ -249,7 +243,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetTypeListLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const listAssetTypesDependencies: IConstruct[] = [listAssetTypesPermission];
@@ -279,7 +272,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetTypeCreateLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const createAssetTypeDependencies: IConstruct[] = [createAssetTypePermission];

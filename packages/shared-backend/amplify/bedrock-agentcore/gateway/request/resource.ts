@@ -76,7 +76,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestCreateLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
 
@@ -111,7 +110,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestKbSearchLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
 
@@ -143,7 +141,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestGetLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
   const getRequestDependencies: IConstruct[] = [getRequestPermission];
@@ -173,7 +170,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestListLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
   const listRequestsDependencies: IConstruct[] = [listRequestsPermission];
@@ -207,7 +203,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestUpdateLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
   const updateRequestDependencies: IConstruct[] = [updateRequestPermission];
@@ -327,7 +322,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestTypeListLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
   const listRequestTypesDependencies: IConstruct[] = [listRequestTypesPermission];

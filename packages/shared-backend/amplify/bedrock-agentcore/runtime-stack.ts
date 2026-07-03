@@ -1,6 +1,3 @@
-import { execFileSync } from "child_process";
-import { mkdirSync } from "fs";
-import { createRequire } from "module";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { Construct } from "constructs";
@@ -23,30 +20,7 @@ import {
 } from "aws-cdk-lib/aws-iam";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(import.meta.url);
 const runtimeAssetPath = join(__dirname, "runtime", "asset");
-const runtimeEntry = join(__dirname, "runtime", "src", "server.ts");
-const runtimeOutput = join(runtimeAssetPath, "server.js");
-const esbuildBin = require.resolve("esbuild/bin/esbuild");
-
-const buildRuntimeAsset = (): void => {
-  mkdirSync(runtimeAssetPath, { recursive: true });
-  execFileSync(
-    process.execPath,
-    [
-      esbuildBin,
-      runtimeEntry,
-      "--bundle",
-      "--platform=node",
-      "--target=node22",
-      "--format=esm",
-      `--outfile=${runtimeOutput}`,
-    ],
-    {
-      stdio: "inherit",
-    },
-  );
-};
 
 interface AgentCoreStackProps {
   projectPathPrefix: string;
@@ -124,8 +98,6 @@ export class AgentCoreStack extends Construct {
         resources: ["*"],
       }),
     );
-
-    buildRuntimeAsset();
 
     const agentRuntime = new Runtime(this, "WorkopsSuiteAgentRuntime", {
       runtimeName: projectPathPrefix.replace(/-/g, "_"),
