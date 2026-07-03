@@ -47,6 +47,7 @@ export class AgentCoreInfrastructure extends Construct {
 
     this.gatewayName = `${projectPathPrefix}-gateway`;
     const memoryName = `${projectPathPrefix.replace(/-/g, "_")}_memory`;
+    const gatewayArn = `arn:${partition}:bedrock-agentcore:${region}:${account}:gateway/${this.gatewayName}`;
 
     // 1. Gateway 実行用ロール
     const gatewayRole = new Role(this, "GatewayRole", {
@@ -67,10 +68,23 @@ export class AgentCoreInfrastructure extends Construct {
             "aws:SourceAccount": account,
           },
           ArnLike: {
-            "aws:SourceArn": `arn:${partition}:bedrock-agentcore:${region}:${account}:gateway/${this.gatewayName}`,
+            "aws:SourceArn": `${gatewayArn}*`,
           },
         },
       })
+    );
+
+    // Gateway 作成時の policy engine 検証で参照される権限を先に作成する。
+    const policyEngineGrant = gatewayRole.addToPrincipalPolicy(
+      new PolicyStatement({
+        actions: [
+          "bedrock-agentcore:CheckAuthorizePermissions",
+          "bedrock-agentcore:AuthorizeAction",
+          "bedrock-agentcore:PartiallyAuthorizeActions",
+          "bedrock-agentcore:GetPolicyEngine",
+        ],
+        resources: [`${gatewayArn}*`, policyEngineArn],
+      }),
     );
 
     // 2. Memory（3つの戦略: Semantic, Preference, Summarization）
@@ -120,6 +134,9 @@ export class AgentCoreInfrastructure extends Construct {
         arn: policyEngineArn,
         mode: "ENFORCE",
       };
+      if (policyEngineGrant.policyDependable) {
+        res.node.addDependency(policyEngineGrant.policyDependable);
+      }
     } else {
       throw new Error("AgentCore Gateway L1 resource is required");
     }
@@ -136,25 +153,6 @@ export class AgentCoreInfrastructure extends Construct {
         ],
         resources: ["*"],
       })
-    );
-
-    // Gateway の policy 評価に必要な AgentCore 権限を付与する
-    gatewayRole.addToPolicy(
-      new PolicyStatement({
-        actions: [
-          "bedrock-agentcore:CheckAuthorizePermissions",
-          "bedrock-agentcore:AuthorizeAction",
-          "bedrock-agentcore:PartiallyAuthorizeActions",
-        ],
-        resources: [this.gateway.gatewayArn, policyEngineArn],
-      }),
-    );
-
-    gatewayRole.addToPolicy(
-      new PolicyStatement({
-        actions: ["bedrock-agentcore:GetPolicyEngine"],
-        resources: [policyEngineArn],
-      }),
     );
 
     // Lambda関数呼び出し権限（MCP Lambda tools用）

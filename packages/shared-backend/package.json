@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build:runtime": "esbuild amplify/bedrock-agentcore/runtime/src/server.ts --bundle --platform=node --target=node22 --format=esm --outfile=amplify/bedrock-agentcore/runtime/asset/server.js",
+    "build:runtime": "node scripts/build-runtime.mjs",
     "build": "npm run build:runtime && tsc -p amplify/tsconfig.json --noEmit",
     "sandbox": "npm run build:runtime && ampx sandbox"
   },

@@ -105,7 +105,7 @@ export class AgentCoreStack extends Construct {
       agentRuntimeArtifact: AgentRuntimeArtifact.fromCodeAsset({
         path: runtimeAssetPath,
         runtime: AgentCoreRuntime.NODE_22,
-        entrypoint: ["node", "server.js"],
+        entrypoint: ["server.js"],
       }),
       authorizerConfiguration: RuntimeAuthorizerConfiguration.usingJWT(
         `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/openid-configuration`,
