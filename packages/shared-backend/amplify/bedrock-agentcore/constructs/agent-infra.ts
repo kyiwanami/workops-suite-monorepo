@@ -1,6 +1,7 @@
 import { Construct } from "constructs";
 import { Stack, Duration } from "aws-cdk-lib";
 import {
+  CfnGateway,
   Gateway,
   GatewayAuthorizer,
   GatewayProtocol,
@@ -8,8 +9,7 @@ import {
   MCPProtocolVersion,
   Memory,
   MemoryStrategy,
-  BrowserCustom,
-} from "@aws-cdk/aws-bedrock-agentcore-alpha";
+} from "aws-cdk-lib/aws-bedrockagentcore";
 import {
   Role,
   ServicePrincipal,
@@ -20,13 +20,12 @@ import {
 
 /**
  * AgentCore Infrastructure Construct
- * Gateway, Memory, Browserを一元管理するコンストラクト
+ * Gateway, Memoryを一元管理するコンストラクト
  */
 export class AgentCoreInfrastructure extends Construct {
   public readonly gateway: Gateway;
   public readonly gatewayName: string;
   public readonly memory: Memory;
-  public readonly browser: BrowserCustom;
 
   constructor(
     scope: Construct,
@@ -48,7 +47,7 @@ export class AgentCoreInfrastructure extends Construct {
 
     this.gatewayName = `${projectPathPrefix}-gateway`;
     const memoryName = `${projectPathPrefix.replace(/-/g, "_")}_memory`;
-    const browserName = `${projectPathPrefix.replace(/-/g, "_")}_browser`;
+    const gatewayArn = `arn:${partition}:bedrock-agentcore:${region}:${account}:gateway/${this.gatewayName}`;
 
     // 1. Gateway 実行用ロール
     const gatewayRole = new Role(this, "GatewayRole", {
@@ -69,10 +68,23 @@ export class AgentCoreInfrastructure extends Construct {
             "aws:SourceAccount": account,
           },
           ArnLike: {
-            "aws:SourceArn": `arn:${partition}:bedrock-agentcore:${region}:${account}:gateway/${this.gatewayName}`,
+            "aws:SourceArn": `${gatewayArn}*`,
           },
         },
       })
+    );
+
+    // Gateway 作成時の policy engine 検証で参照される権限を先に作成する。
+    const policyEngineGrant = gatewayRole.addToPrincipalPolicy(
+      new PolicyStatement({
+        actions: [
+          "bedrock-agentcore:CheckAuthorizePermissions",
+          "bedrock-agentcore:AuthorizeAction",
+          "bedrock-agentcore:PartiallyAuthorizeActions",
+          "bedrock-agentcore:GetPolicyEngine",
+        ],
+        resources: [`${gatewayArn}*`, policyEngineArn],
+      }),
     );
 
     // 2. Memory（3つの戦略: Semantic, Preference, Summarization）
@@ -82,15 +94,15 @@ export class AgentCoreInfrastructure extends Construct {
       expirationDuration: Duration.days(90),
       memoryStrategies: [
         MemoryStrategy.usingSemantic({
-          name: "Semantic",
+          strategyName: "Semantic",
           namespaces: ["/app/semantic/actors/{actorId}"],
         }),
         MemoryStrategy.usingUserPreference({
-          name: "Preference",
+          strategyName: "Preference",
           namespaces: ["/app/preference/actors/{actorId}"],
         }),
         MemoryStrategy.usingSummarization({
-          name: "Summarization",
+          strategyName: "Summarization",
           namespaces: [
             "/app/summarization/actors/{actorId}/sessions/{sessionId}",
           ],
@@ -98,13 +110,7 @@ export class AgentCoreInfrastructure extends Construct {
       ],
     });
 
-    // 3. Browser
-    this.browser = new BrowserCustom(this, "AgentBrowser", {
-      browserCustomName: browserName,
-      description: "Browser for fetching web information",
-    });
-
-    // 4. Gateway（MCP Server統合）
+    // 3. Gateway（MCP Server統合）
     this.gateway = new Gateway(this, "AgentGateway", {
       gatewayName: this.gatewayName,
       role: gatewayRole,
@@ -121,9 +127,22 @@ export class AgentCoreInfrastructure extends Construct {
       }),
     });
 
+    // Gateway の Cedar policy 評価を CloudFormation 管理の設定として有効化する。
+    const res = this.gateway.node.defaultChild;
+    if (res instanceof CfnGateway) {
+      res.policyEngineConfiguration = {
+        arn: policyEngineArn,
+        mode: "ENFORCE",
+      };
+      if (policyEngineGrant.policyDependable) {
+        res.node.addDependency(policyEngineGrant.policyDependable);
+      }
+    } else {
+      throw new Error("AgentCore Gateway L1 resource is required");
+    }
+
     // 依存関係の明示化
     this.gateway.node.addDependency(this.memory);
-    this.gateway.node.addDependency(this.browser);
 
     // Gateway基本権限
     gatewayRole.addToPolicy(
@@ -134,25 +153,6 @@ export class AgentCoreInfrastructure extends Construct {
         ],
         resources: ["*"],
       })
-    );
-
-    // Gateway の policy 評価に必要な AgentCore 権限を付与する
-    gatewayRole.addToPolicy(
-      new PolicyStatement({
-        actions: [
-          "bedrock-agentcore:CheckAuthorizePermissions",
-          "bedrock-agentcore:AuthorizeAction",
-          "bedrock-agentcore:PartiallyAuthorizeActions",
-        ],
-        resources: [this.gateway.gatewayArn, policyEngineArn],
-      }),
-    );
-
-    gatewayRole.addToPolicy(
-      new PolicyStatement({
-        actions: ["bedrock-agentcore:GetPolicyEngine"],
-        resources: [policyEngineArn],
-      }),
     );
 
     // Lambda関数呼び出し権限（MCP Lambda tools用）

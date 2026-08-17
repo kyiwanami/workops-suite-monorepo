@@ -1,7 +1,7 @@
 import {
   SchemaDefinitionType,
   ToolSchema,
-} from "@aws-cdk/aws-bedrock-agentcore-alpha";
+} from "aws-cdk-lib/aws-bedrockagentcore";
 
 export const searchRequestKnowledgeBaseToolSchema = ToolSchema.fromInline([
   {

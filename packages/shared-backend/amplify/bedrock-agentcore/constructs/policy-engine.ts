@@ -1,11 +1,5 @@
 import { Aws, Fn } from "aws-cdk-lib";
-import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
-import {
-  AwsCustomResource,
-  AwsCustomResourcePolicy,
-  PhysicalResourceId,
-  PhysicalResourceIdReference,
-} from "aws-cdk-lib/custom-resources";
+import { CfnPolicyEngine } from "aws-cdk-lib/aws-bedrockagentcore";
 import { Construct } from "constructs";
 
 export interface PolicyEngineProps {
@@ -28,37 +22,12 @@ export class PolicyEngine extends Construct {
 
     const policyEngineName = Fn.join("_", ["p", normalizedPrefix, normalizedSuffix]);
 
-    const resource = new AwsCustomResource(this, "Resource", {
-      onCreate: {
-        service: "@aws-sdk/client-bedrock-agentcore-control",
-        action: "CreatePolicyEngineCommand",
-        parameters: {
-          name: policyEngineName,
-          description: `Policy engine for ${props.projectPathPrefix}`,
-        },
-        physicalResourceId: PhysicalResourceId.fromResponse("policyEngineId"),
-      },
-      onUpdate: {
-        service: "@aws-sdk/client-bedrock-agentcore-control",
-        action: "GetPolicyEngineCommand",
-        parameters: {
-          policyEngineId: new PhysicalResourceIdReference(),
-        },
-      },
-      installLatestAwsSdk: true,
-      policy: AwsCustomResourcePolicy.fromStatements([
-        new PolicyStatement({
-          effect: Effect.ALLOW,
-          actions: [
-            "bedrock-agentcore:CreatePolicyEngine",
-            "bedrock-agentcore:GetPolicyEngine",
-          ],
-          resources: ["*"],
-        }),
-      ]),
+    const resource = new CfnPolicyEngine(this, "Resource", {
+      name: policyEngineName,
+      description: `Policy engine for ${props.projectPathPrefix}`,
     });
 
-    this.policyEngineId = resource.getResponseField("policyEngineId");
-    this.policyEngineArn = resource.getResponseField("policyEngineArn");
+    this.policyEngineId = resource.attrPolicyEngineId;
+    this.policyEngineArn = resource.attrPolicyEngineArn;
   }
 }

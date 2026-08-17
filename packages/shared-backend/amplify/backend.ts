@@ -9,7 +9,6 @@ import { data } from "./data/resource";
 import { AgentCoreInfrastructure } from "./bedrock-agentcore/constructs/agent-infra";
 import { AgentCoreStack } from "./bedrock-agentcore/runtime-stack";
 import { PolicyEngine } from "./bedrock-agentcore/constructs/policy-engine";
-import { WebSearchApiKeyProvider } from "./bedrock-agentcore/constructs/web-search-api-key-provider";
 import { assetStorage } from "./storage/resource";
 import { VectorStoreResources as AssetVectorStoreResources } from "./s3vectors/asset/resource";
 import { BedrockResources as AssetBedrockResources } from "./bedrock/asset/resource";
@@ -48,13 +47,11 @@ import { requestToolList } from "./function/tools/request-tool-list/resource";
 import { requestToolUpdate } from "./function/tools/request-tool-update/resource";
 import { requestTypeToolList } from "./function/tools/request-type-tool-list/resource";
 import { syncRequest } from "./function/sync-request/resource";
-import { webSearchApiKeyProviderFunction } from "./function/web-search-api-key-provider/resource";
 
 import { createGatewayTargets as createAssetGatewayTargets } from "./bedrock-agentcore/gateway/asset/resource";
 import { createGatewayTargets as createRequestGatewayTargets } from "./bedrock-agentcore/gateway/request/resource";
 import {
   createGatewayPolicyResources,
-  createPolicyEngineAttachmentResource,
 } from "./bedrock-agentcore/policy/resource";
 
 // ブランチ名取得
@@ -100,14 +97,13 @@ const backend = defineBackend({
   requestToolUpdate,
   requestTypeToolList,
   syncRequest,
-  webSearchApiKeyProviderFunction,
 });
 
 // Backend型をエクスポート
 export type BackendType = typeof backend;
 
 // ==================================================
-// AgentCore Infrastructure（Gateway, Memory, Browser, Runtime, PolicyEngine）
+// AgentCore Infrastructure（Gateway, Memory, Runtime, PolicyEngine）
 // ==================================================
 const userPoolIdForAgentCore = backend.auth.resources.userPool.userPoolId;
 const userPoolClientIdForAgentCore = backend.auth.resources.userPoolClient.userPoolClientId;
@@ -129,16 +125,6 @@ const agentCoreInfrastructure = new AgentCoreInfrastructure(
   },
 );
 
-new WebSearchApiKeyProvider(
-  agentCoreInfraStack,
-  "WebSearchApiKeyProvider",
-  {
-    projectPathPrefix: pathPrefix,
-    apiKeyValue: "DUMMY", // Users update via AWS Console
-    onEventHandler: backend.webSearchApiKeyProviderFunction.resources.lambda,
-  },
-);
-
 const agentCoreRuntimeStack = backend.createStack("AgentCoreRuntimeStack");
 const agentCoreRuntime = new AgentCoreStack(agentCoreRuntimeStack, "AgentCore", {
   projectPathPrefix: pathPrefix,
@@ -147,7 +133,6 @@ const agentCoreRuntime = new AgentCoreStack(agentCoreRuntimeStack, "AgentCore", 
   userPoolClientId: userPoolClientIdForAgentCore,
   gateway: agentCoreInfrastructure.gateway,
   memory: agentCoreInfrastructure.memory,
-  browser: agentCoreInfrastructure.browser,
 });
 agentCoreRuntimeStack.addDependency(agentCoreInfraStack);
 
@@ -387,7 +372,6 @@ backend.requestKbSearch.addEnvironment(
 // ==================================================
 const assetGatewayTargetsStack = backend.createStack("AssetGatewayTargetsStack");
 const requestGatewayTargetsStack = backend.createStack("RequestGatewayTargetsStack");
-const attachPolicyEngineStack = backend.createStack("AttachPolicyEngineStack");
 const assetGatewayPolicyStack = backend.createStack("AssetGatewayPolicyStack");
 const requestGatewayPolicyStack = backend.createStack("RequestGatewayPolicyStack");
 
@@ -421,36 +405,25 @@ const requestPolicies = createRequestGatewayTargets({
   requestTypeListLambda: backend.requestTypeToolList.resources.lambda,
 });
 
-const policyEngineAttachmentResource = createPolicyEngineAttachmentResource({
-  scope: attachPolicyEngineStack,
-  branchName,
-  gatewayId: agentCoreInfrastructure.gateway.gatewayId,
-  gatewayRoleArn: agentCoreInfrastructure.gateway.role.roleArn,
-  policyEngineArn: policyEngine.policyEngineArn,
-});
-
 createGatewayPolicyResources({
   scope: assetGatewayPolicyStack,
   branchName,
-  gatewayArn: agentCoreInfrastructure.gateway.gatewayArn,
   policyEngineId: policyEngine.policyEngineId,
   policies: assetPolicies,
-  attachmentDependency: policyEngineAttachmentResource,
 });
 
 createGatewayPolicyResources({
   scope: requestGatewayPolicyStack,
   branchName,
-  gatewayArn: agentCoreInfrastructure.gateway.gatewayArn,
   policyEngineId: policyEngine.policyEngineId,
   policies: requestPolicies,
-  attachmentDependency: policyEngineAttachmentResource,
 });
 
-attachPolicyEngineStack.addDependency(assetGatewayTargetsStack);
-attachPolicyEngineStack.addDependency(requestGatewayTargetsStack);
-assetGatewayPolicyStack.addDependency(attachPolicyEngineStack);
-requestGatewayPolicyStack.addDependency(attachPolicyEngineStack);
+// Cedar policy は Gateway target の action schema 登録後に検証される。
+assetGatewayPolicyStack.addDependency(assetGatewayTargetsStack);
+assetGatewayPolicyStack.addDependency(requestGatewayTargetsStack);
+requestGatewayPolicyStack.addDependency(assetGatewayTargetsStack);
+requestGatewayPolicyStack.addDependency(requestGatewayTargetsStack);
 
 // ==================================================
 // カスタム出力: AgentCore Runtime ARN

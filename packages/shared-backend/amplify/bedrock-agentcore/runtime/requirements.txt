@@ -1,5 +1,0 @@
-bedrock-agentcore>=0.1.1
-boto3>=1.38.0
-mcp>=1.25.0
-opentelemetry-distro>=0.54b0
-opentelemetry-instrumentation>=0.54b0

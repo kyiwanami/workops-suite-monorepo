@@ -1,4 +1,4 @@
-import { Gateway, GatewayTarget } from "@aws-cdk/aws-bedrock-agentcore-alpha";
+import { Gateway, GatewayTarget } from "aws-cdk-lib/aws-bedrockagentcore";
 import { Role } from "aws-cdk-lib/aws-iam";
 import { CfnPermission } from "aws-cdk-lib/aws-lambda";
 import type { IFunction } from "aws-cdk-lib/aws-lambda";
@@ -73,7 +73,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetCreateLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const createAssetDependencies: IConstruct[] = [createAssetPermission];
@@ -91,7 +90,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
 
   createAssetTarget.node.addDependency(...createAssetDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, createAssetTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, createAssetTarget.gatewayTargetName, [
       "editor",
       "manager",
     ]),
@@ -102,7 +101,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetKbSearchLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const kbSearchDependencies: IConstruct[] = [kbSearchPermission];
@@ -121,7 +119,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
 
   kbSearchTarget.node.addDependency(...kbSearchDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, kbSearchTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, kbSearchTarget.gatewayTargetName, [
       "viewer",
       "editor",
       "manager",
@@ -133,7 +131,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetUpdateLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const updateAssetDependencies: IConstruct[] = [updateAssetPermission];
@@ -151,7 +148,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
 
   updateAssetTarget.node.addDependency(...updateAssetDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, updateAssetTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, updateAssetTarget.gatewayTargetName, [
       "editor",
       "manager",
     ]),
@@ -162,7 +159,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetDeleteLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const deleteAssetDependencies: IConstruct[] = [deleteAssetPermission];
@@ -180,7 +176,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
 
   deleteAssetTarget.node.addDependency(...deleteAssetDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, deleteAssetTarget.name, ["manager"]),
+    createGatewayPolicyDefinition(gatewayArn, deleteAssetTarget.gatewayTargetName, ["manager"]),
   );
 
   // 6. list-assets ターゲット
@@ -188,7 +184,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetListLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const listAssetsDependencies: IConstruct[] = [listAssetsPermission];
@@ -207,7 +202,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
 
   listAssetsTarget.node.addDependency(...listAssetsDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, listAssetsTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, listAssetsTarget.gatewayTargetName, [
       "viewer",
       "editor",
       "manager",
@@ -219,7 +214,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetGetLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const getAssetDependencies: IConstruct[] = [getAssetPermission];
@@ -237,7 +231,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
 
   getAssetTarget.node.addDependency(...getAssetDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, getAssetTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, getAssetTarget.gatewayTargetName, [
       "viewer",
       "editor",
       "manager",
@@ -249,7 +243,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetTypeListLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const listAssetTypesDependencies: IConstruct[] = [listAssetTypesPermission];
@@ -267,7 +260,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
 
   listAssetTypesTarget.node.addDependency(...listAssetTypesDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, listAssetTypesTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, listAssetTypesTarget.gatewayTargetName, [
       "viewer",
       "editor",
       "manager",
@@ -279,7 +272,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetTypeCreateLambda.functionArn,
     principal: gatewayRoleArn,
-    sourceArn: gatewayArn,
   });
 
   const createAssetTypeDependencies: IConstruct[] = [createAssetTypePermission];
@@ -297,7 +289,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
 
   createAssetTypeTarget.node.addDependency(...createAssetTypeDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, createAssetTypeTarget.name, ["manager"]),
+    createGatewayPolicyDefinition(gatewayArn, createAssetTypeTarget.gatewayTargetName, ["manager"]),
   );
 
   return policies;

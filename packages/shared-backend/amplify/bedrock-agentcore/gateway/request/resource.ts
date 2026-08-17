@@ -1,7 +1,7 @@
 import {
   Gateway,
   GatewayTarget,
-} from "@aws-cdk/aws-bedrock-agentcore-alpha";
+} from "aws-cdk-lib/aws-bedrockagentcore";
 import { Role } from "aws-cdk-lib/aws-iam";
 import { CfnPermission } from "aws-cdk-lib/aws-lambda";
 import type { IFunction } from "aws-cdk-lib/aws-lambda";
@@ -76,7 +76,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestCreateLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
 
@@ -98,7 +97,7 @@ export function createGatewayTargets(
   );
   createRequestTarget.node.addDependency(...createRequestDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, createRequestTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, createRequestTarget.gatewayTargetName, [
       "editor",
       "manager",
     ]),
@@ -111,7 +110,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestKbSearchLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
 
@@ -129,7 +127,7 @@ export function createGatewayTargets(
   });
   kbSearchTarget.node.addDependency(...kbSearchDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, kbSearchTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, kbSearchTarget.gatewayTargetName, [
       "viewer",
       "editor",
       "manager",
@@ -143,7 +141,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestGetLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
   const getRequestDependencies: IConstruct[] = [getRequestPermission];
@@ -159,7 +156,7 @@ export function createGatewayTargets(
   });
   getRequestTarget.node.addDependency(...getRequestDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, getRequestTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, getRequestTarget.gatewayTargetName, [
       "viewer",
       "editor",
       "manager",
@@ -173,7 +170,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestListLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
   const listRequestsDependencies: IConstruct[] = [listRequestsPermission];
@@ -193,7 +189,7 @@ export function createGatewayTargets(
   );
   listRequestsTarget.node.addDependency(...listRequestsDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, listRequestsTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, listRequestsTarget.gatewayTargetName, [
       "viewer",
       "editor",
       "manager",
@@ -207,7 +203,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestUpdateLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
   const updateRequestDependencies: IConstruct[] = [updateRequestPermission];
@@ -228,7 +223,7 @@ export function createGatewayTargets(
   );
   updateRequestTarget.node.addDependency(...updateRequestDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, updateRequestTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, updateRequestTarget.gatewayTargetName, [
       "editor",
       "manager",
     ]),
@@ -247,7 +242,7 @@ export function createGatewayTargets(
   );
   submitRequestTarget.node.addDependency(...updateRequestDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, submitRequestTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, submitRequestTarget.gatewayTargetName, [
       "editor",
       "manager",
     ]),
@@ -266,7 +261,7 @@ export function createGatewayTargets(
   );
   withdrawRequestTarget.node.addDependency(...updateRequestDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, withdrawRequestTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, withdrawRequestTarget.gatewayTargetName, [
       "editor",
       "manager",
     ]),
@@ -285,7 +280,7 @@ export function createGatewayTargets(
   );
   approveRequestTarget.node.addDependency(...updateRequestDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, approveRequestTarget.name, ["manager"]),
+    createGatewayPolicyDefinition(gatewayArn, approveRequestTarget.gatewayTargetName, ["manager"]),
   );
 
   const rejectRequestTarget = GatewayTarget.forLambda(
@@ -301,7 +296,7 @@ export function createGatewayTargets(
   );
   rejectRequestTarget.node.addDependency(...updateRequestDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, rejectRequestTarget.name, ["manager"]),
+    createGatewayPolicyDefinition(gatewayArn, rejectRequestTarget.gatewayTargetName, ["manager"]),
   );
 
   const returnRequestTarget = GatewayTarget.forLambda(
@@ -317,7 +312,7 @@ export function createGatewayTargets(
   );
   returnRequestTarget.node.addDependency(...updateRequestDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, returnRequestTarget.name, ["manager"]),
+    createGatewayPolicyDefinition(gatewayArn, returnRequestTarget.gatewayTargetName, ["manager"]),
   );
 
   const listRequestTypesPermission = new CfnPermission(
@@ -327,7 +322,6 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestTypeListLambda.functionArn,
       principal: gatewayRoleArn,
-      sourceArn: gatewayArn,
     },
   );
   const listRequestTypesDependencies: IConstruct[] = [listRequestTypesPermission];
@@ -347,7 +341,7 @@ export function createGatewayTargets(
   );
   listRequestTypesTarget.node.addDependency(...listRequestTypesDependencies);
   policies.push(
-    createGatewayPolicyDefinition(gatewayArn, listRequestTypesTarget.name, [
+    createGatewayPolicyDefinition(gatewayArn, listRequestTypesTarget.gatewayTargetName, [
       "viewer",
       "editor",
       "manager",
