@@ -9,37 +9,32 @@ Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
 
-type RequestStatus = Schema["Request"]["type"]["status"];
-
 interface CreateRequestInput {
-  departmentId: string;
-  requesterSub: string;
+  departmentId?: string;
+  requesterSub?: string;
   requestTypeId: string;
-  status?: RequestStatus;
   title: string;
   amount?: number | null;
   description?: string;
-  submittedAt?: string;
-  approvedAt?: string;
-  rejectedAt?: string;
-  withdrawnAt?: string;
-  returnedAt?: string;
 }
 
 export const handler = async (event: CreateRequestInput) => {
-  // 初期状態は draft を既定値にして、submit は明示コマンドで実行する。
+  // 現在のIAM fallbackではwrite toolを公開しない。
+  // 本人委任を解除する場合は、Gateway境界で検証済みの値だけを受け取る。
+  const departmentId = event.departmentId;
+  const requesterSub = event.requesterSub;
+  if (!departmentId || !requesterSub) {
+    throw new Error("検証済み本人情報が不足しています。");
+  }
+
+  // modelが状態や監査時刻を指定できないよう、初期値は常にserver側で決める。
   const createInput: Schema["Request"]["createType"] = {
-    departmentId: event.departmentId,
-    requesterSub: event.requesterSub,
+    departmentId,
+    requesterSub,
     requestTypeId: event.requestTypeId,
-    status: event.status ?? "draft",
+    status: "draft",
     title: event.title,
     description: event.description,
-    submittedAt: event.submittedAt,
-    approvedAt: event.approvedAt,
-    rejectedAt: event.rejectedAt,
-    withdrawnAt: event.withdrawnAt,
-    returnedAt: event.returnedAt,
   };
   if (event.amount !== undefined) {
     createInput.amount = event.amount;

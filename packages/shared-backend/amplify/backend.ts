@@ -1,14 +1,21 @@
 import { defineBackend } from "@aws-amplify/backend";
+import { createHash } from "node:crypto";
 import { aws_iam as iam } from "aws-cdk-lib";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
-import { Provider } from "aws-cdk-lib/custom-resources";
 import { auth, setupAuth } from "./auth/resource";
 import { data } from "./data/resource";
-import { AgentCoreInfrastructure } from "./bedrock-agentcore/constructs/agent-infra";
-import { AgentCoreStack } from "./bedrock-agentcore/runtime-stack";
+import { ToolGateway } from "./bedrock-agentcore/constructs/tool-gateway";
+import { AgentHarness } from "./bedrock-agentcore/constructs/harness";
 import { PolicyEngine } from "./bedrock-agentcore/constructs/policy-engine";
+import { allowedToolNames } from "./bedrock-agentcore/tool-access";
+import {
+  createGatewayPolicyDefinitions,
+  gatewayPolicyMode,
+} from "./bedrock-agentcore/policy/policy-statements";
+import { createGatewayPolicyResources } from "./bedrock-agentcore/policy/resource";
+import { AgentRestApi } from "./agent-api/resource";
 import { assetStorage } from "./storage/resource";
 import { VectorStoreResources as AssetVectorStoreResources } from "./s3vectors/asset/resource";
 import { BedrockResources as AssetBedrockResources } from "./bedrock/asset/resource";
@@ -18,7 +25,6 @@ import { getUserFunction } from "./function/user-operations/get-user/resource";
 import { createUserFunction } from "./function/user-operations/create-user/resource";
 import { setUserEnabledFunction } from "./function/user-operations/set-user-enabled/resource";
 import { deleteUserFunction } from "./function/user-operations/delete-user/resource";
-import { registerCallbackUrlFunction } from "./function/register-callback-url/resource";
 
 import { listGroupsFunction } from "./function/group-operations/list-groups/resource";
 import { createGroupFunction } from "./function/group-operations/create-group/resource";
@@ -50,28 +56,18 @@ import { syncRequest } from "./function/sync-request/resource";
 
 import { createGatewayTargets as createAssetGatewayTargets } from "./bedrock-agentcore/gateway/asset/resource";
 import { createGatewayTargets as createRequestGatewayTargets } from "./bedrock-agentcore/gateway/request/resource";
-import {
-  createGatewayPolicyResources,
-} from "./bedrock-agentcore/policy/resource";
-
-// ブランチ名取得
-// - Amplifyビルド時: AWS_BRANCH環境変数から取得
-// - ローカルsandbox: 'sandbox'固定
-const branchName = process.env.AWS_BRANCH || "sandbox";
-
-// パスプレフィックス生成 (workops-suite-{branchName})
-const pathPrefix = `workops-suite-${branchName}`;
+import { agentcoreBff } from "./function/agentcore-bff/resource";
 
 const backend = defineBackend({
   auth,
   data,
   assetStorage,
+  agentcoreBff,
   listUsersFunction,
   getUserFunction,
   createUserFunction,
   setUserEnabledFunction,
   deleteUserFunction,
-  registerCallbackUrlFunction,
   listGroupsFunction,
   createGroupFunction,
   deleteGroupFunction,
@@ -102,43 +98,85 @@ const backend = defineBackend({
 // Backend型をエクスポート
 export type BackendType = typeof backend;
 
-// ==================================================
-// AgentCore Infrastructure（Gateway, Memory, Runtime, PolicyEngine）
-// ==================================================
-const userPoolIdForAgentCore = backend.auth.resources.userPool.userPoolId;
-const userPoolClientIdForAgentCore = backend.auth.resources.userPoolClient.userPoolClientId;
+// Pipelineはbranch、sandboxは--identifierを物理resource名へ反映する。
+const backendName = backend.stack.node.getContext("amplify-backend-name");
+if (typeof backendName !== "string") {
+  throw new Error("Amplify backend name context is required");
+}
+const branchName = process.env.AWS_BRANCH || backendName;
+const pathPrefix = `workops-suite-${branchName}`;
+const policyDeploymentKey = createHash("sha256")
+  .update(backendName)
+  .digest("hex")
+  .slice(0, 8);
 
-const agentCoreInfraStack = backend.createStack("AgentCoreInfraStack");
+// ==================================================
+// Managed Harness、業務Tool Gateway、Cedar
+// ==================================================
+const toolLambdaList = [
+  backend.assetToolCreate.resources.lambda,
+  backend.assetKbSearch.resources.lambda,
+  backend.assetToolUpdate.resources.lambda,
+  backend.assetToolDelete.resources.lambda,
+  backend.assetToolList.resources.lambda,
+  backend.assetToolGet.resources.lambda,
+  backend.assetTypeToolList.resources.lambda,
+  backend.assetTypeToolCreate.resources.lambda,
+  backend.requestToolCreate.resources.lambda,
+  backend.requestKbSearch.resources.lambda,
+  backend.requestToolGet.resources.lambda,
+  backend.requestToolList.resources.lambda,
+  backend.requestToolUpdate.resources.lambda,
+  backend.requestTypeToolList.resources.lambda,
+];
 
-const policyEngine = new PolicyEngine(agentCoreInfraStack, "PolicyEngine", {
-  projectPathPrefix: pathPrefix,
+const agentCoreStack = backend.createStack("AgentCoreStack");
+const userPoolId = backend.auth.resources.userPool.userPoolId;
+const userPool = backend.auth.resources.userPool;
+const cfnUserPoolClient = backend.auth.resources.cfnResources.cfnUserPoolClient;
+const cognitoIssuer = `https://cognito-idp.${agentCoreStack.region}.amazonaws.com/${userPoolId}`;
+const cognitoDiscoveryUrl = `${cognitoIssuer}/.well-known/openid-configuration`;
+
+const policyEngine = new PolicyEngine(agentCoreStack, "PolicyEngine", {
+  // Policy Engine names accept underscores, but not the hyphens used by the
+  // surrounding resource names. This does not alter Harness/Gateway names.
+  policyEngineName: `${pathPrefix.replaceAll("-", "_")}_tool_policy`,
+});
+const toolGateway = new ToolGateway(agentCoreStack, "ToolGateway", {
+  gatewayName: `${pathPrefix}-tools`,
+  toolFunctions: toolLambdaList,
+  policyEngineArn: policyEngine.policyEngineArn,
+  policyMode: gatewayPolicyMode,
+});
+const agentHarness = new AgentHarness(agentCoreStack, "Harness", {
+  harnessName: `${pathPrefix.replace(/-/g, "_")}_harness`,
+  gatewayArn: toolGateway.gateway.gatewayArn,
+  discoveryUrl: cognitoDiscoveryUrl,
+  allowedClientIds: [cfnUserPoolClient.ref],
+  allowedScope: "workops-agent/invoke",
 });
 
-const agentCoreInfrastructure = new AgentCoreInfrastructure(
-  agentCoreInfraStack,
-  "Infrastructure",
-  {
-    projectPathPrefix: pathPrefix,
-    userPoolId: userPoolIdForAgentCore,
-    userPoolClientId: userPoolClientIdForAgentCore,
-    policyEngineArn: policyEngine.policyEngineArn,
-  },
+const bffFunction = backend.agentcoreBff;
+const bffLambda = bffFunction.resources.lambda;
+bffFunction.addEnvironment("HARNESS_ARN", agentHarness.harnessArn);
+bffFunction.addEnvironment("MANAGED_MEMORY_ARN", agentHarness.memoryArn);
+bffLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: [
+      "bedrock-agentcore:ListSessions",
+      "bedrock-agentcore:ListEvents",
+      "bedrock-agentcore:DeleteEvent",
+    ],
+    resources: [agentHarness.memoryArn],
+  }),
 );
-
-const agentCoreRuntimeStack = backend.createStack("AgentCoreRuntimeStack");
-const agentCoreRuntime = new AgentCoreStack(agentCoreRuntimeStack, "AgentCore", {
-  projectPathPrefix: pathPrefix,
-  region: backend.stack.region,
-  userPoolId: userPoolIdForAgentCore,
-  userPoolClientId: userPoolClientIdForAgentCore,
-  gateway: agentCoreInfrastructure.gateway,
-  memory: agentCoreInfrastructure.memory,
+const agentApiStack = backend.createStack("AgentApiStack");
+const agentRestApi = new AgentRestApi(agentApiStack, "AgentRestApi", {
+  bff: bffLambda,
+  userPool: backend.auth.resources.userPool,
 });
-agentCoreRuntimeStack.addDependency(agentCoreInfraStack);
 
 // 各関数に環境変数を設定
-const userPoolId = backend.auth.resources.userPool.userPoolId;
-
 [
   backend.listUsersFunction,
   backend.getUserFunction,
@@ -165,18 +203,6 @@ backend.departmentStreamHandlerFunction.addEnvironment("USER_POOL_ID", userPoolI
 
 // Auth設定（Cognito User Poolなど）を適用
 setupAuth(backend, pathPrefix);
-
-// ==================================================
-// IAM: 認証済みユーザーに AgentCore 実行権限を付与
-// ==================================================
-backend.auth.resources.authenticatedUserIamRole.addToPrincipalPolicy(
-  new PolicyStatement({
-    actions: ["bedrock-agentcore:InvokeAgentRuntime"],
-    resources: ["*"],
-  }),
-);
-
-const userPool = backend.auth.resources.userPool;
 
 // ==================================================
 // IAM: グループ操作関数に Cognito 権限を付与
@@ -372,15 +398,13 @@ backend.requestKbSearch.addEnvironment(
 // ==================================================
 const assetGatewayTargetsStack = backend.createStack("AssetGatewayTargetsStack");
 const requestGatewayTargetsStack = backend.createStack("RequestGatewayTargetsStack");
-const assetGatewayPolicyStack = backend.createStack("AssetGatewayPolicyStack");
-const requestGatewayPolicyStack = backend.createStack("RequestGatewayPolicyStack");
 
-const assetPolicies = createAssetGatewayTargets({
+createAssetGatewayTargets({
   scope: assetGatewayTargetsStack,
-  gatewayArn: agentCoreInfrastructure.gateway.gatewayArn,
-  gatewayId: agentCoreInfrastructure.gateway.gatewayId,
-  gatewayName: agentCoreInfrastructure.gatewayName,
-  gatewayRoleArn: agentCoreInfrastructure.gateway.role.roleArn,
+  gatewayArn: toolGateway.gateway.gatewayArn,
+  gatewayId: toolGateway.gateway.gatewayId,
+  gatewayName: toolGateway.gateway.gatewayName,
+  gatewayRoleArn: toolGateway.gateway.role.roleArn,
   assetCreateLambda: backend.assetToolCreate.resources.lambda,
   assetKbSearchLambda: backend.assetKbSearch.resources.lambda,
   assetUpdateLambda: backend.assetToolUpdate.resources.lambda,
@@ -391,12 +415,12 @@ const assetPolicies = createAssetGatewayTargets({
   assetTypeCreateLambda: backend.assetTypeToolCreate.resources.lambda,
 });
 
-const requestPolicies = createRequestGatewayTargets({
+createRequestGatewayTargets({
   scope: requestGatewayTargetsStack,
-  gatewayArn: agentCoreInfrastructure.gateway.gatewayArn,
-  gatewayId: agentCoreInfrastructure.gateway.gatewayId,
-  gatewayName: agentCoreInfrastructure.gatewayName,
-  gatewayRoleArn: agentCoreInfrastructure.gateway.role.roleArn,
+  gatewayArn: toolGateway.gateway.gatewayArn,
+  gatewayId: toolGateway.gateway.gatewayId,
+  gatewayName: toolGateway.gateway.gatewayName,
+  gatewayRoleArn: toolGateway.gateway.role.roleArn,
   requestCreateLambda: backend.requestToolCreate.resources.lambda,
   requestKbSearchLambda: backend.requestKbSearch.resources.lambda,
   requestGetLambda: backend.requestToolGet.resources.lambda,
@@ -404,54 +428,33 @@ const requestPolicies = createRequestGatewayTargets({
   requestUpdateLambda: backend.requestToolUpdate.resources.lambda,
   requestTypeListLambda: backend.requestTypeToolList.resources.lambda,
 });
+assetGatewayTargetsStack.addStackDependency(agentCoreStack);
+requestGatewayTargetsStack.addStackDependency(agentCoreStack);
 
-createGatewayPolicyResources({
-  scope: assetGatewayPolicyStack,
-  branchName,
+// Cedar validation must run after all Gateway targets exist, because the policy
+// analyzer resolves the exact target___tool actions during policy creation.
+const gatewayPolicyDefinitions = allowedToolNames.flatMap((toolName) =>
+  createGatewayPolicyDefinitions(
+    toolGateway.gateway.gatewayArn,
+    toolName,
+    agentHarness.gatewayPrincipalId,
+    policyDeploymentKey,
+  ),
+);
+const gatewayPolicyStack = backend.createStack("GatewayPolicyStack");
+createGatewayPolicyResources(gatewayPolicyStack, "GatewayPolicy", {
   policyEngineId: policyEngine.policyEngineId,
-  policies: assetPolicies,
+  definitions: gatewayPolicyDefinitions,
 });
-
-createGatewayPolicyResources({
-  scope: requestGatewayPolicyStack,
-  branchName,
-  policyEngineId: policyEngine.policyEngineId,
-  policies: requestPolicies,
-});
-
-// Cedar policy は Gateway target の action schema 登録後に検証される。
-assetGatewayPolicyStack.addDependency(assetGatewayTargetsStack);
-assetGatewayPolicyStack.addDependency(requestGatewayTargetsStack);
-requestGatewayPolicyStack.addDependency(assetGatewayTargetsStack);
-requestGatewayPolicyStack.addDependency(requestGatewayTargetsStack);
+gatewayPolicyStack.addStackDependency(agentCoreStack);
+gatewayPolicyStack.addStackDependency(assetGatewayTargetsStack);
+gatewayPolicyStack.addStackDependency(requestGatewayTargetsStack);
 
 // ==================================================
-// カスタム出力: AgentCore Runtime ARN
+// カスタム出力: Browser向けAgent API URL
 // ==================================================
 backend.addOutput({
   custom: {
-    agentCoreRuntimeArn: agentCoreRuntime.runtimeArn,
+    agentRestApiUrl: agentRestApi.api.url,
   },
 });
-
-// ==================================================
-// CustomResource: サブシステムからのCallback URL登録
-// ==================================================
-// サンドボックス環境では不要
-if (process.env.AWS_BRANCH) {
-  // Lambda関数にCognito操作権限を付与
-  backend.registerCallbackUrlFunction.resources.lambda.addToRolePolicy(
-    new iam.PolicyStatement({
-      actions: [
-        "cognito-idp:DescribeUserPoolClient",
-        "cognito-idp:UpdateUserPoolClient",
-      ],
-      resources: [userPool.userPoolArn],
-    }),
-  );
-
-  // CustomResource Provider作成
-  new Provider(backend.stack, "CallbackUrlProvider", {
-    onEventHandler: backend.registerCallbackUrlFunction.resources.lambda,
-  });
-}

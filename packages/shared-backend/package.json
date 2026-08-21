@@ -3,36 +3,32 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build:runtime": "node scripts/build-runtime.mjs",
-    "build": "npm run build:runtime && tsc -p amplify/tsconfig.json --noEmit",
-    "sandbox": "npm run build:runtime && ampx sandbox"
+    "build": "tsc -p amplify/tsconfig.json --noEmit",
+    "sandbox": "ampx sandbox"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-agent": "3.1079.0",
-    "@aws-sdk/client-bedrock-agent-runtime": "3.1079.0",
-    "@aws-sdk/client-bedrock-agentcore": "3.1079.0",
-    "@aws-sdk/client-s3": "3.1079.0",
-    "@modelcontextprotocol/sdk": "1.29.0",
-    "@strands-agents/sdk": "1.7.0",
-    "aws-amplify": "^6.15.9",
-    "bedrock-agentcore": "0.4.0",
-    "jwt-decode": "^4.0.0",
+    "@aws-sdk/client-bedrock-agent": "3.1112.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "3.1112.0",
+    "@aws-sdk/client-bedrock-agentcore": "3.1112.0",
+    "@aws-sdk/client-bedrock-agentcore-control": "3.1112.0",
+    "@aws-sdk/client-cognito-identity-provider": "3.1112.0",
+    "@aws-sdk/client-s3": "3.1112.0",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@smithy/core": "3.33.2",
+    "@smithy/types": "4.17.2",
+    "aws-amplify": "6.20.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@aws-amplify/backend": "^1.19.0",
-    "@aws-amplify/backend-cli": "^1.8.1",
-    "@aws-sdk/client-cognito-identity-provider": "^3.962.0",
+    "@aws-amplify/backend": "1.24.0",
+    "@aws-amplify/backend-cli": "1.9.0",
     "@dotenvx/dotenvx": "^1.57.0",
     "@types/aws-lambda": "^8.10.159",
     "@types/node": "^25.0.3",
-    "aws-cdk": "2.1129.0",
-    "aws-cdk-lib": "2.261.0",
+    "aws-cdk": "2.1136.0",
+    "aws-cdk-lib": "2.265.0",
     "constructs": "^10.3.0",
     "esbuild": "^0.27.2",
     "typescript": "^5.4.5"
-  },
-  "overrides": {
-    "@aws-sdk/client-cloudformation": "3.936.0"
   }
 }

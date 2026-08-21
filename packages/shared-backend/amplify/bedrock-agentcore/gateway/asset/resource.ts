@@ -1,21 +1,21 @@
-import { Gateway, GatewayTarget } from "aws-cdk-lib/aws-bedrockagentcore";
+import {
+  Gateway,
+  GatewayTarget,
+} from "aws-cdk-lib/aws-bedrockagentcore";
 import { Role } from "aws-cdk-lib/aws-iam";
 import { CfnPermission } from "aws-cdk-lib/aws-lambda";
 import type { IFunction } from "aws-cdk-lib/aws-lambda";
 import { Construct, IConstruct } from "constructs";
 import {
-  createGatewayPolicyDefinition,
-  GatewayPolicyDefinition,
-} from "../../policy/policy-statements";
-import {
+  assetToolNames,
   createAssetToolSchema,
+  createAssetTypeToolSchema,
+  deleteAssetToolSchema,
+  getAssetToolSchema,
+  listAssetsToolSchema,
+  listAssetTypesToolSchema,
   searchAssetKnowledgeBaseToolSchema,
   updateAssetToolSchema,
-  deleteAssetToolSchema,
-  listAssetsToolSchema,
-  getAssetToolSchema,
-  listAssetTypesToolSchema,
-  createAssetTypeToolSchema,
 } from "./tool-schemas";
 
 export interface CreateGatewayTargetsProps {
@@ -37,7 +37,7 @@ export interface CreateGatewayTargetsProps {
 /**
  * AgentCore Gateway にターゲット（ツール）を登録する
  */
-export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayPolicyDefinition[] {
+export function createGatewayTargets(props: CreateGatewayTargetsProps): void {
   const {
     scope,
     gatewayArn,
@@ -54,7 +54,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     assetTypeCreateLambda,
   } = props;
 
-  // 既存の Gateway をインポートし、上から順に tool 登録と policy 定義を揃える。
+  // 作成済みの単一Gatewayを参照し、Asset targetを登録する。
   const gateway = Gateway.fromGatewayAttributes(scope, "ImportedGateway", {
     gatewayArn,
     gatewayId,
@@ -65,7 +65,6 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
   });
 
   const roleDefaultPolicy = gateway.role.node.tryFindChild("DefaultPolicy");
-  const policies: GatewayPolicyDefinition[] = [];
 
   // 2. create-asset ターゲット
   // IAMポリシー（アイデンティティベース）の反映待ちを避け、リソースベースポリシーを同期的に設定する (Issue #36826 回避策)
@@ -73,6 +72,7 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     action: "lambda:InvokeFunction",
     functionName: assetCreateLambda.functionArn,
     principal: gatewayRoleArn,
+    sourceArn: gatewayArn,
   });
 
   const createAssetDependencies: IConstruct[] = [createAssetPermission];
@@ -84,23 +84,18 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     gateway,
     lambdaFunction: assetCreateLambda,
     toolSchema: createAssetToolSchema,
-    gatewayTargetName: "create-asset",
+    gatewayTargetName: assetToolNames.createAsset,
     description: "Creates a new Asset",
   });
 
   createAssetTarget.node.addDependency(...createAssetDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, createAssetTarget.gatewayTargetName, [
-      "editor",
-      "manager",
-    ]),
-  );
 
-  // 3. search-asset-knowledge-base ターゲット
+  // 3. search-asset-kb ターゲット
   const kbSearchPermission = new CfnPermission(scope, "AssetKbSearchGatewayPermission", {
     action: "lambda:InvokeFunction",
     functionName: assetKbSearchLambda.functionArn,
     principal: gatewayRoleArn,
+    sourceArn: gatewayArn,
   });
 
   const kbSearchDependencies: IConstruct[] = [kbSearchPermission];
@@ -112,25 +107,19 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     gateway,
     lambdaFunction: assetKbSearchLambda,
     toolSchema: searchAssetKnowledgeBaseToolSchema,
-    gatewayTargetName: "search-asset-knowledge-base",
+    gatewayTargetName: assetToolNames.searchAssetKb,
     description:
       "Semantic asset search when list-assets GSI combinations are not applicable",
   });
 
   kbSearchTarget.node.addDependency(...kbSearchDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, kbSearchTarget.gatewayTargetName, [
-      "viewer",
-      "editor",
-      "manager",
-    ]),
-  );
 
   // 4. update-asset ターゲット
   const updateAssetPermission = new CfnPermission(scope, "AssetUpdateGatewayPermission", {
     action: "lambda:InvokeFunction",
     functionName: assetUpdateLambda.functionArn,
     principal: gatewayRoleArn,
+    sourceArn: gatewayArn,
   });
 
   const updateAssetDependencies: IConstruct[] = [updateAssetPermission];
@@ -142,23 +131,18 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     gateway,
     lambdaFunction: assetUpdateLambda,
     toolSchema: updateAssetToolSchema,
-    gatewayTargetName: "update-asset",
+    gatewayTargetName: assetToolNames.updateAsset,
     description: "Updates an existing Asset",
   });
 
   updateAssetTarget.node.addDependency(...updateAssetDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, updateAssetTarget.gatewayTargetName, [
-      "editor",
-      "manager",
-    ]),
-  );
 
   // 5. delete-asset ターゲット
   const deleteAssetPermission = new CfnPermission(scope, "AssetDeleteGatewayPermission", {
     action: "lambda:InvokeFunction",
     functionName: assetDeleteLambda.functionArn,
     principal: gatewayRoleArn,
+    sourceArn: gatewayArn,
   });
 
   const deleteAssetDependencies: IConstruct[] = [deleteAssetPermission];
@@ -170,20 +154,18 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     gateway,
     lambdaFunction: assetDeleteLambda,
     toolSchema: deleteAssetToolSchema,
-    gatewayTargetName: "delete-asset",
+    gatewayTargetName: assetToolNames.deleteAsset,
     description: "Deletes an Asset",
   });
 
   deleteAssetTarget.node.addDependency(...deleteAssetDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, deleteAssetTarget.gatewayTargetName, ["manager"]),
-  );
 
   // 6. list-assets ターゲット
   const listAssetsPermission = new CfnPermission(scope, "AssetListGatewayPermission", {
     action: "lambda:InvokeFunction",
     functionName: assetListLambda.functionArn,
     principal: gatewayRoleArn,
+    sourceArn: gatewayArn,
   });
 
   const listAssetsDependencies: IConstruct[] = [listAssetsPermission];
@@ -195,25 +177,19 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     gateway,
     lambdaFunction: assetListLambda,
     toolSchema: listAssetsToolSchema,
-    gatewayTargetName: "list-assets",
+    gatewayTargetName: assetToolNames.listAssets,
     description:
       "GSI-only asset listing. Allowed combinations: departmentId, departmentId+status, assigneeSub, assigneeSub+status, assetTypeId",
   });
 
   listAssetsTarget.node.addDependency(...listAssetsDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, listAssetsTarget.gatewayTargetName, [
-      "viewer",
-      "editor",
-      "manager",
-    ]),
-  );
 
   // 7. get-asset ターゲット
   const getAssetPermission = new CfnPermission(scope, "AssetGetGatewayPermission", {
     action: "lambda:InvokeFunction",
     functionName: assetGetLambda.functionArn,
     principal: gatewayRoleArn,
+    sourceArn: gatewayArn,
   });
 
   const getAssetDependencies: IConstruct[] = [getAssetPermission];
@@ -225,24 +201,18 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     gateway,
     lambdaFunction: assetGetLambda,
     toolSchema: getAssetToolSchema,
-    gatewayTargetName: "get-asset",
+    gatewayTargetName: assetToolNames.getAsset,
     description: "Gets a single Asset by ID",
   });
 
   getAssetTarget.node.addDependency(...getAssetDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, getAssetTarget.gatewayTargetName, [
-      "viewer",
-      "editor",
-      "manager",
-    ]),
-  );
 
   // 8. list-asset-types ターゲット
   const listAssetTypesPermission = new CfnPermission(scope, "AssetTypeListGatewayPermission", {
     action: "lambda:InvokeFunction",
     functionName: assetTypeListLambda.functionArn,
     principal: gatewayRoleArn,
+    sourceArn: gatewayArn,
   });
 
   const listAssetTypesDependencies: IConstruct[] = [listAssetTypesPermission];
@@ -254,24 +224,18 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     gateway,
     lambdaFunction: assetTypeListLambda,
     toolSchema: listAssetTypesToolSchema,
-    gatewayTargetName: "list-asset-types",
+    gatewayTargetName: assetToolNames.listAssetTypes,
     description: "Lists all AssetTypes",
   });
 
   listAssetTypesTarget.node.addDependency(...listAssetTypesDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, listAssetTypesTarget.gatewayTargetName, [
-      "viewer",
-      "editor",
-      "manager",
-    ]),
-  );
 
   // 9. create-asset-type ターゲット
   const createAssetTypePermission = new CfnPermission(scope, "AssetTypeCreateGatewayPermission", {
     action: "lambda:InvokeFunction",
     functionName: assetTypeCreateLambda.functionArn,
     principal: gatewayRoleArn,
+    sourceArn: gatewayArn,
   });
 
   const createAssetTypeDependencies: IConstruct[] = [createAssetTypePermission];
@@ -283,14 +247,9 @@ export function createGatewayTargets(props: CreateGatewayTargetsProps): GatewayP
     gateway,
     lambdaFunction: assetTypeCreateLambda,
     toolSchema: createAssetTypeToolSchema,
-    gatewayTargetName: "create-asset-type",
+    gatewayTargetName: assetToolNames.createAssetType,
     description: "Creates a new AssetType",
   });
 
   createAssetTypeTarget.node.addDependency(...createAssetTypeDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, createAssetTypeTarget.gatewayTargetName, ["manager"]),
-  );
-
-  return policies;
 }

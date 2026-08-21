@@ -1,17 +1,8 @@
 import { createContext, useContext } from "react";
 
-export interface ChatBotUserInfo {
-  userId?: string;
-  departmentCode?: string;
-}
-
 export interface ChatBotConfig {
-  /** セッションのフィルターキー（旧: packageJson.name） */
-  appId: string;
-  /** AgentCore エンドポイント URL */
-  agentCoreUrl: string;
-  /** 認証情報（アプリ側で useAuth() を呼んで渡す） */
-  userInfo: ChatBotUserInfo;
+  /** Cognitoで認証されたBrowserが接続するChat API URL */
+  agentRestApiUrl: string;
   /** チャットウィジェットのデフォルトタイトル */
   title?: string;
 }

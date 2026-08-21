@@ -11,9 +11,7 @@ import AppRoutes from "./app/Routes";
 import { ChatBotProvider, ChatWidget } from "@workops-suite/shared-chatbot";
 import outputs from "../../../packages/shared-backend/amplify_outputs.json";
 
-const region = outputs.auth.aws_region;
-const runtimeArn = outputs.custom.agentCoreRuntimeArn;
-const agentCoreUrl = `https://bedrock-agentcore.${region}.amazonaws.com/runtimes/${encodeURIComponent(runtimeArn)}/invocations`;
+const agentRestApiUrl = outputs.custom.agentRestApiUrl;
 
 const AuthorizedApp = () => {
   const { userInfo } = useAuth();
@@ -23,9 +21,7 @@ const AuthorizedApp = () => {
   return (
     <ChatBotProvider
       config={{
-        appId: "@workops-suite/asset-catalog",
-        agentCoreUrl,
-        userInfo,
+        agentRestApiUrl,
         title: "資産カタログチャット",
       }}
     >

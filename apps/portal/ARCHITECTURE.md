@@ -241,7 +241,7 @@ type Page {
 | **delete-user** | ユーザー削除 | AppSync Mutation |
 | **department-stream-handler** | 部署登録時にCognitoグループ自動生成 | DynamoDB Stream |
 | **pre-token-generation** | JWT にカスタムクレーム注入 | Cognito トリガー |
-| **register-callback-url** | Callback URL を Cognito に動的登録 | CustomResource |
+| **register-callback-url（残課題）** | Appの`urlDomain`をCognito callback/logout URLへ追記 | App DynamoDB Stream（未接続） |
 
 ---
 

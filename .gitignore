@@ -11,3 +11,5 @@ __pycache__
 PLAN.md
 HANDOFF.md
 .codex/environments/environment.toml
+
+tmp

@@ -9,13 +9,12 @@
   "peerDependencies": {
     "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.6",
-    "aws-amplify": "^6.15.9",
+    "aws-amplify": "6.20.0",
     "react": "^18.2.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
   },
   "dependencies": {
-    "base64-js": "^1.5.1",
-    "uuid": "^13.0.0"
+    "zod": "^4.1.12"
   }
 }

@@ -19,11 +19,10 @@ workops-suite-monorepo/
 │       │   ├── bedrock/           # Bedrock Knowledge Base
 │       │   ├── storage/           # S3バケット
 │       │   ├── s3vectors/         # S3 Vector Store
-│       │   └── bedrock-agentcore/ # AgentCore（Gateway/Memory/Browser/Runtime）
+│       │   └── bedrock-agentcore/ # AgentCore（Managed Harness/Gateway/Policy）
 │       │       ├── constructs/    # CDK Constructs
 │       │       ├── gateway/       # Gatewayツール登録
-│       │       ├── policy/        # Cedar Policy
-│       │       └── runtime/       # Python AgentCore実装
+│       │       └── policy/        # Cedar Policy
 │       └── amplify_outputs.json   # ビルド出力（バックエンド設定）
 ├── package.json                   # Workspace定義
 └── README.md                      # このファイル
@@ -70,9 +69,9 @@ npm run preview
 - Pre-token generation トリガー（カスタムクレーム追加）
 
 **データモデル**:
-- `ChatSession`: チャットセッション
-- `ChatMessage`: チャットメッセージ
 - `Department`: 部門
+- 資産・資産種別
+- 申請・申請種別
 - その他ビジネスロジック用テーブル
 
 **Lambda関数**:
@@ -80,6 +79,7 @@ npm run preview
 - グループ操作（list/create/delete/add-user/remove-user）
 - DynamoDB Stream処理（Department → Cognito Group 同期）
 - Pre-token generation
+- AgentCore BFF
 
 ## 🔗 フロントエンド ↔ バックエンド連携
 
@@ -104,11 +104,17 @@ packages/shared-backend/amplify/data/resource
 packages/shared-backend/amplify_outputs.json
 ```
 
-### AgentCore Runtime（Chat機能）
+### AgentCore（Chat機能）
 
-- Asset Catalog・Request Manager の Chat 機能は AWS Bedrock AgentCore Runtime を呼び出します
-- Runtime ARN は `amplify_outputs.json` の `custom.agentCoreRuntimeArn` から取得されます
-- AgentCore（Gateway / Memory / Browser / Runtime）は shared-backend の Amplify デプロイで自動プロビジョニングされます
+- Asset Catalog・Request Manager の Chat 機能は単一の AWS Bedrock AgentCore Managed Harness を共有します
+- BrowserからのCognito access tokenはAPI GatewayとManaged Harnessで検証されます
+- Managed Harnessがagent loop、Managed Memory、native Gateway toolを所有します
+- AgentCore BFFはBearerの中継、Memory API、raw text streamingだけを担当します
+- GatewayはAWS IAMでHarnessを認証し、Policy EngineはCedarをENFORCEで適用します
+- 現在はHarness execution roleをprincipalとするViewer相当のread-only toolだけを許可します
+- Agent API URLは`amplify_outputs.json`の`custom.agentRestApiUrl`から取得されます
+
+詳細は[WorkOps AgentCore現行構成](docs/architecture/agentcore-modernization.md)を参照してください。
 
 ## 🛠️ 開発ワークフロー
 
@@ -149,15 +155,15 @@ cd apps/request-manager && npx tsc --noEmit
 
 | レイヤー | 手段 | 備考 |
 |---------|------|------|
-| AgentCore Runtime | **OpenTelemetry 組み込み済み** → X-Ray | エントリポイントが `opentelemetry-instrument` ラッパー経由のため自動計装 |
-| Gateway / Memory / Browser | CloudWatch メトリクス自動発行 | Bedrock AgentCore マネージドサービス |
+| Managed Harness | AgentCore Runtime logs / X-Ray | AWS管理のagent loopを観測 |
+| Gateway / Cedar | Gateway TRACES delivery / X-Ray | Policy spanで認可判定を確認 |
 | Lambda 関数（全30+個） | CloudWatch Logs（90日保持） | `defineFunction` の `logging.retention` で設定済み |
 
-> **注意**: Lambda に X-Ray が設定されていなくても、AgentCore Runtime の OTel トレースで AI エージェントのフロー全体はカバーされている。Lambda の X-Ray は「AgentCore トレースと Lambda を同一トレース ID で繋ぐ」追加強化であり、現時点では省略。
+アカウント単位のTransaction Searchとsamplingを含む手順は、[AgentCore検証・再検証runbook](docs/research/agentcore/04-verification-and-revalidation-runbook.md)を参照してください。
 
 ## 🔐 セキュリティ
 
-- **認証**: Cognito User Pool
-- **認可**: CASL ベースのロールベースアクセス制御（RBAC）
-- **API**: IAM ポリシーによる最小権限の付与
+- **認証**: Cognito User Pool、API Gateway Cognito authorizer、Managed Harness CUSTOM_JWT
+- **Gateway認証**: Harness execution roleによるAWS IAM
+- **実行時認可**: Gateway Policy EngineによるCedar ENFORCE
 - **データ暗号化**: DynamoDB/Cognito は AWS 管理キーで自動暗号化

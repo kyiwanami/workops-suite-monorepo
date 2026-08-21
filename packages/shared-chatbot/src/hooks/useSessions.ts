@@ -1,114 +1,108 @@
 import { useEffect, useState } from "react";
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@workops/data-schema";
+import { fetchAuthSession } from "aws-amplify/auth";
+import { z } from "zod";
 import type { Session } from "../types";
 import { useChatBotConfig } from "../context/ChatBotConfigContext";
 
-const client = generateClient<Schema>();
+// Managed Memoryから返るsession一覧のJSON形状を検証する。
+const sessionsSchema = z.object({
+  sessions: z.array(
+    z.object({
+      id: z.string(),
+      createdAt: z.string(),
+    }),
+  ),
+});
 
+// 作成日時だけを正本にしてsessionの表示名を生成する。
+function sessionName(createdAt: string): string {
+  return `会話 ${new Date(createdAt).toLocaleString("ja-JP")}`;
+}
+
+// API Gatewayのbase URLとresource pathを結合する。
+function apiUrl(url: string, path: string): string {
+  return `${url.replace(/\/$/, "")}${path}`;
+}
+
+// Cognito sessionからBFFへ渡すaccess tokenを取得する。
+async function accessToken(): Promise<string> {
+  const session = await fetchAuthSession();
+  const token = session.tokens?.accessToken?.toString();
+  if (!token) {
+    throw new Error("Cognito access token is unavailable");
+  }
+  return token;
+}
+
+// Managed Memoryのsession一覧、作成、削除を提供する。
 export function useSessions() {
-  const { appId } = useChatBotConfig();
+  const { agentRestApiUrl } = useChatBotConfig();
   const [sessions, setSessions] = useState<Session[]>([]);
 
-  // セッション一覧を updatedAt の降順で取得する
-  const loadSessions = async () => {
-    const { data, errors } =
-      await client.models.ChatSession.listChatSessionByAppId(
-        {
-          appId,
-        },
-        {
-          limit: 50,
-          sortDirection: "DESC",
-        }
-      );
-
-    if (errors) {
-      console.error("Session list error", errors);
-      setSessions([]);
-      return;
-    }
-
-    const sessionList: Session[] = (data ?? []).map((item) => ({
-      id: item.id,
-      name: item.name ?? "無題の会話",
-      createdAt: item.createdAt ?? "",
-      updatedAt: item.updatedAt ?? "",
-    }));
-
-    setSessions(sessionList);
-  };
-
   useEffect(() => {
-    void loadSessions();
-  }, []);
-
-  // 新規セッションを作成し、自動生成されたIDを返す
-  const createSession = async (): Promise<string | null> => {
-    const { data, errors } = await client.models.ChatSession.create({
-      appId,
-      name: `会話 - ${new Date().toLocaleString("ja-JP")}`,
-    });
-
-    if (errors || !data?.id) {
-      console.error("Session create error", errors);
-      return null;
-    }
-
-    await loadSessions();
-    return data.id;
-  };
-
-  // セッション削除時に配下メッセージを先に削除して整合性を保つ
-  const deleteSession = async (sessionId: string) => {
-    let varNextToken: string | null | undefined;
-    const allMessages: Array<{ id: string }> = [];
-
-    do {
-      const { data, errors, nextToken } =
-        await client.models.ChatMessage.listChatMessageBySessionId(
-          { sessionId },
-          {
-            limit: 1000,
-            nextToken: varNextToken ?? undefined,
-          }
+    void (async () => {
+      try {
+        const token = await accessToken();
+        const response = await fetch(apiUrl(agentRestApiUrl, "/chat/sessions"), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          throw new Error("Session list failed");
+        }
+        const result = sessionsSchema.parse(JSON.parse(await response.text()));
+        const loadedSessions = result.sessions.map((session) => ({
+          ...session,
+          name: sessionName(session.createdAt),
+        }));
+        const loadedIds = new Set(
+          loadedSessions.map((session) => session.id),
         );
-
-      if (errors) {
-        console.error("Message list error", errors);
-        return;
+        // 一覧取得中に画面で作成した未保存sessionを残す。
+        setSessions((currentSessions) => [
+          ...currentSessions.filter((session) => !loadedIds.has(session.id)),
+          ...loadedSessions,
+        ]);
+      } catch (error) {
+        console.error("Session list error", error);
       }
+    })();
+  }, [agentRestApiUrl]);
 
-      allMessages.push(...(data ?? []));
-      varNextToken = nextToken;
-    } while (varNextToken);
-
-    for (const message of allMessages) {
-      const { errors } = await client.models.ChatMessage.delete({
-        id: message.id,
-      });
-
-      if (errors) {
-        console.error("Message delete error", errors);
-        return;
-      }
-    }
-
-    const { errors } = await client.models.ChatSession.delete({
-      id: sessionId,
-    });
-
-    if (errors) {
-      console.error("Session delete error", errors);
-      return;
-    }
-
-    await loadSessions();
+  const createSession = (): string => {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    setSessions((currentSessions) => [
+      {
+        id,
+        name: sessionName(now),
+        createdAt: now,
+      },
+      ...currentSessions,
+    ]);
+    return id;
   };
 
-  return {
-    sessions,
-    createSession,
-    deleteSession,
+  const deleteSession = async (sessionId: string) => {
+    try {
+      const token = await accessToken();
+      const response = await fetch(
+        apiUrl(agentRestApiUrl, `/chat/sessions/${sessionId}`),
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Session delete failed");
+      }
+      setSessions((currentSessions) =>
+        currentSessions.filter((session) => session.id !== sessionId),
+      );
+    } catch (error) {
+      console.error("Session delete error", error);
+      throw error;
+    }
   };
+
+  return { sessions, createSession, deleteSession };
 }

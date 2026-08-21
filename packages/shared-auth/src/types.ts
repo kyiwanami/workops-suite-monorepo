@@ -27,7 +27,7 @@ export interface UserInfo {
 export interface AuthContextType {
   userInfo: UserInfo;
   isLoading: boolean;
-  error: string | null;
+  error: string;
   signOut: () => Promise<void>;
 }
 

@@ -4,11 +4,8 @@ import {
   DescribeUserPoolClientCommand,
   UpdateUserPoolClientCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
-import { env } from "$amplify/env/register-callback-url";
 
-const cognitoClient = new CognitoIdentityProviderClient({
-  region: env.AWS_REGION,
-});
+const cognitoClient = new CognitoIdentityProviderClient({});
 
 // カスタムプロパティの型定義
 interface CallbackUrlResourceProperties {

@@ -6,7 +6,7 @@ export const requestFormSchema = z.object({
   description: z.string().nullable().optional(),
   amount: z
     .number({
-      invalid_type_error: "金額は数値で入力してください",
+      error: "金額は数値で入力してください",
     })
     .finite("金額は数値で入力してください")
     .nullable()

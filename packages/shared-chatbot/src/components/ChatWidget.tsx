@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Fab,
   Paper,
@@ -18,7 +18,6 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { useSessions } from "../hooks/useSessions";
-import { useSession } from "../hooks/useSession";
 import { useChatBotConfig } from "../context/ChatBotConfigContext";
 import { ChatPanel } from "./ChatPanel";
 
@@ -29,12 +28,16 @@ export default function ChatWidget() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const { sessions, createSession, deleteSession } = useSessions();
-  const currentSession = useSession(currentSessionId);
+  const currentSession = sessions.find((session) => session.id === currentSessionId);
 
-  const handleNewSession = async () => {
-    const newId = await createSession();
-    if (newId) {
-      setCurrentSessionId(newId);
+  const handleNewSession = () => {
+    setCurrentSessionId(createSession());
+  };
+
+  const handleOpen = () => {
+    setOpen(true);
+    if (!currentSessionId) {
+      setCurrentSessionId(createSession());
     }
   };
 
@@ -50,18 +53,6 @@ export default function ChatWidget() {
   const handleCloseMenu = () => {
     setAnchorEl(null);
   };
-
-  // 初回表示時: セッションがない場合は自動で新規作成
-  useEffect(() => {
-    if (sessions.length === 0 && !currentSessionId) {
-      void (async () => {
-        const newId = await createSession();
-        if (newId) {
-          setCurrentSessionId(newId);
-        }
-      })();
-    }
-  }, [sessions.length, currentSessionId, createSession]);
 
   // ヘッダータイトル取得
   function getHeaderTitle(): string {
@@ -79,12 +70,17 @@ export default function ChatWidget() {
     if (
       window.confirm("この会話を削除しますか？すべてメッセージも削除されます。")
     ) {
-      await deleteSession(sessionId);
-      if (currentSessionId === sessionId) {
-        setCurrentSessionId(null);
-      }
-      if (sessions.length <= 1) {
-        setAnchorEl(null);
+      try {
+        await deleteSession(sessionId);
+        // 削除APIが成功したときだけ、表示中のsessionを閉じる。
+        if (currentSessionId === sessionId) {
+          setCurrentSessionId(null);
+        }
+        if (sessions.length <= 1) {
+          setAnchorEl(null);
+        }
+      } catch (error) {
+        console.error("Session delete UI update skipped", error);
       }
     }
   };
@@ -93,7 +89,7 @@ export default function ChatWidget() {
     <>
       <Fab
         color="primary"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         sx={{
           position: "fixed",
           bottom: 24,
@@ -138,7 +134,7 @@ export default function ChatWidget() {
               </Tooltip>
               <Tooltip title="新しい会話">
                 <IconButton
-                  onClick={() => void handleNewSession()}
+                  onClick={handleNewSession}
                   sx={{ color: "white" }}
                 >
                   <AddIcon />
@@ -198,7 +194,9 @@ export default function ChatWidget() {
             )}
           </Menu>
 
-          {currentSessionId && <ChatPanel sessionId={currentSessionId} />}
+          {currentSessionId && (
+            <ChatPanel key={currentSessionId} sessionId={currentSessionId} />
+          )}
         </Paper>
       )}
     </>

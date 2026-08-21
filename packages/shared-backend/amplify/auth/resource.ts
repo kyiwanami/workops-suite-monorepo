@@ -1,8 +1,10 @@
 import { defineAuth } from "@aws-amplify/backend";
 import type { BackendType } from "../backend";
+import { Stack } from "aws-cdk-lib";
 import { preTokenGenerationFunction } from "../function/pre-token-generation/resource";
 import {
   CfnManagedLoginBranding,
+  CfnUserPoolResourceServer,
   CfnUserPoolDomain,
   LambdaVersion,
   ManagedLoginVersion,
@@ -34,6 +36,7 @@ export const auth = defineAuth({
 
 export const setupAuth = (backend: BackendType, pathPrefix: string) => {
   const { cfnUserPool, cfnUserPoolClient } = backend.auth.resources.cfnResources;
+  const authStack = Stack.of(cfnUserPool);
 
   // ユーザープール名を明示的に指定
   cfnUserPool.userPoolName = `${pathPrefix}-user-pool`;
@@ -52,6 +55,30 @@ export const setupAuth = (backend: BackendType, pathPrefix: string) => {
       temporaryPasswordValidityDays: 7, // 一時パスワードの有効期間
     },
   };
+
+  const agentResourceServer = new CfnUserPoolResourceServer(
+    authStack,
+    "AgentResourceServer",
+    {
+      userPoolId: cfnUserPool.ref,
+      identifier: "workops-agent",
+      name: "WorkOps Agent API",
+      scopes: [
+        {
+          scopeName: "invoke",
+          scopeDescription: "Invoke the WorkOps Agent chat API",
+        },
+      ],
+    },
+  );
+
+  cfnUserPoolClient.allowedOAuthScopes = [
+    "openid",
+    "aws.cognito.signin.user.admin",
+    "workops-agent/invoke",
+  ];
+  agentResourceServer.node.addDependency(cfnUserPool);
+  cfnUserPoolClient.node.addDependency(agentResourceServer);
 
   // Pre Token Generation Lambdaトリガーの設定
   const userPool = backend.auth.resources.userPool.node

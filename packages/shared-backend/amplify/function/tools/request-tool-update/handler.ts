@@ -3,6 +3,11 @@ import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
 import { env } from "$amplify/env/request-tool-update";
 import type { Schema } from "../../../data/resource";
+import { z } from "zod";
+import {
+  gatewayActionName,
+  toolNames,
+} from "../../../bedrock-agentcore/tool-access";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
 Amplify.configure(resourceConfig, libraryOptions);
@@ -34,17 +39,19 @@ interface UpdateRequestCommand {
   approverSub?: string;
 }
 
-interface GatewayContext {
-  toolName?: string;
-  custom?: {
-    toolName?: string;
-  };
-  clientContext?: {
-    custom?: {
-      toolName?: string;
-    };
-  };
-}
+const gatewayContextSchema = z
+  .object({
+    clientContext: z
+      .object({
+        custom: z
+          .object({ bedrockAgentCoreToolName: z.string().min(1) })
+          .passthrough(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+type GatewayContext = z.input<typeof gatewayContextSchema>;
 
 const TARGET_STATUS_BY_ACTION: Record<
   Exclude<UpdateActionType, "update">,
@@ -72,38 +79,36 @@ function isRequestStatus(status: string): status is RequestStatus {
   return REQUEST_STATUSES.some((requestStatus) => requestStatus === status);
 }
 
-function resolveAction(context: GatewayContext): UpdateActionType {
-  const toolName =
-    context.toolName ??
-    context.custom?.toolName ??
-    context.clientContext?.custom?.toolName;
-
-  if (toolName?.includes("submit-request")) {
-    return "submit";
+// Gatewayが呼び出したtool名を申請の操作へ対応付ける。
+function requestAction(context: GatewayContext): UpdateActionType {
+  // Gateway target Lambda contextにはAWS公開のTypeScript型がないため、
+  // 実行時境界で検証し、生成済みの正式なaction名だけを受け入れる。
+  const parsed = gatewayContextSchema.parse(context);
+  const exactActionName = parsed.clientContext.custom.bedrockAgentCoreToolName
+    .split("/")
+    .pop();
+  const actionByToolName: Record<string, UpdateActionType> = {
+    [gatewayActionName(toolNames.submitRequest)]: "submit",
+    [gatewayActionName(toolNames.withdrawRequest)]: "withdraw",
+    [gatewayActionName(toolNames.approveRequest)]: "approve",
+    [gatewayActionName(toolNames.rejectRequest)]: "reject",
+    [gatewayActionName(toolNames.returnRequest)]: "return",
+    [gatewayActionName(toolNames.updateRequest)]: "update",
+  };
+  const action = exactActionName
+    ? actionByToolName[exactActionName]
+    : undefined;
+  if (!action) {
+    throw new Error("対応していないツールです。");
   }
-  if (toolName?.includes("withdraw-request")) {
-    return "withdraw";
-  }
-  if (toolName?.includes("approve-request")) {
-    return "approve";
-  }
-  if (toolName?.includes("reject-request")) {
-    return "reject";
-  }
-  if (toolName?.includes("return-request")) {
-    return "return";
-  }
-  if (toolName?.includes("update-request")) {
-    return "update";
-  }
-  throw new Error("対応していないツールです。");
+  return action;
 }
 
 export const handler = async (
   event: UpdateRequestCommand,
   context: GatewayContext,
 ) => {
-  const action = resolveAction(context);
+  const action = requestAction(context);
   // TODO: 監査ログは現時点で UI 経路のみ記録する。
 
   // まず最新の申請を取得して、状態遷移の可否を判定する。
@@ -172,6 +177,7 @@ export const handler = async (
       updateInput.withdrawnAt = now;
     }
     if (action === "approve") {
+      // 本人委任を解除する場合は、Gateway境界で検証済みのsubだけを保存する。
       if (!event.approverSub) {
         throw new Error("approve では approverSub が必須です。");
       }

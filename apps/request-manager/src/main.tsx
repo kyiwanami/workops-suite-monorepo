@@ -9,9 +9,18 @@ import { translations } from "@aws-amplify/ui-react";
 I18n.putVocabularies(translations);
 I18n.setLanguage("ja");
 
+const origin = `${window.location.origin}/`;
+outputs.auth.oauth.redirect_sign_in_uri = [origin];
+outputs.auth.oauth.redirect_sign_out_uri = [origin];
 Amplify.configure(outputs);
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+// Reactをmountするroot要素がHTMLに存在することを起動時に検証する。
+const root = document.getElementById("root");
+if (!root) {
+  throw new Error("React root element is unavailable");
+}
+
+ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>

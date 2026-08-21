@@ -7,16 +7,13 @@ import { CfnPermission } from "aws-cdk-lib/aws-lambda";
 import type { IFunction } from "aws-cdk-lib/aws-lambda";
 import { Construct, IConstruct } from "constructs";
 import {
-  createGatewayPolicyDefinition,
-  GatewayPolicyDefinition,
-} from "../../policy/policy-statements";
-import {
   approveRequestToolSchema,
   createRequestToolSchema,
   getRequestToolSchema,
-  listRequestTypesToolSchema,
   listRequestsToolSchema,
+  listRequestTypesToolSchema,
   rejectRequestToolSchema,
+  requestToolNames,
   returnRequestToolSchema,
   searchRequestKnowledgeBaseToolSchema,
   submitRequestToolSchema,
@@ -41,7 +38,7 @@ export interface CreateGatewayTargetsProps {
 // AgentCore Gateway にターゲット（ツール）を登録する
 export function createGatewayTargets(
   props: CreateGatewayTargetsProps,
-): GatewayPolicyDefinition[] {
+): void {
   const {
     scope,
     gatewayArn,
@@ -66,7 +63,6 @@ export function createGatewayTargets(
   });
 
   const roleDefaultPolicy = gateway.role.node.tryFindChild("DefaultPolicy");
-  const policies: GatewayPolicyDefinition[] = [];
 
   // IAMポリシー反映待ちを避けるため、Lambdaリソースポリシーを先に作成する
   const createRequestPermission = new CfnPermission(
@@ -76,6 +72,7 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestCreateLambda.functionArn,
       principal: gatewayRoleArn,
+      sourceArn: gatewayArn,
     },
   );
 
@@ -91,17 +88,11 @@ export function createGatewayTargets(
       gateway,
       lambdaFunction: requestCreateLambda,
       toolSchema: createRequestToolSchema,
-      gatewayTargetName: "create-request",
+      gatewayTargetName: requestToolNames.createRequest,
       description: "Creates a new Request",
     },
   );
   createRequestTarget.node.addDependency(...createRequestDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, createRequestTarget.gatewayTargetName, [
-      "editor",
-      "manager",
-    ]),
-  );
 
   const kbSearchPermission = new CfnPermission(
     scope,
@@ -110,6 +101,7 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestKbSearchLambda.functionArn,
       principal: gatewayRoleArn,
+      sourceArn: gatewayArn,
     },
   );
 
@@ -122,17 +114,10 @@ export function createGatewayTargets(
     gateway,
     lambdaFunction: requestKbSearchLambda,
     toolSchema: searchRequestKnowledgeBaseToolSchema,
-    gatewayTargetName: "search-request-knowledge-base",
+    gatewayTargetName: requestToolNames.searchRequestKb,
     description: "Searches the request knowledge base",
   });
   kbSearchTarget.node.addDependency(...kbSearchDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, kbSearchTarget.gatewayTargetName, [
-      "viewer",
-      "editor",
-      "manager",
-    ]),
-  );
 
   const getRequestPermission = new CfnPermission(
     scope,
@@ -141,6 +126,7 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestGetLambda.functionArn,
       principal: gatewayRoleArn,
+      sourceArn: gatewayArn,
     },
   );
   const getRequestDependencies: IConstruct[] = [getRequestPermission];
@@ -151,17 +137,10 @@ export function createGatewayTargets(
     gateway,
     lambdaFunction: requestGetLambda,
     toolSchema: getRequestToolSchema,
-    gatewayTargetName: "get-request",
+    gatewayTargetName: requestToolNames.getRequest,
     description: "Gets a single Request by ID",
   });
   getRequestTarget.node.addDependency(...getRequestDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, getRequestTarget.gatewayTargetName, [
-      "viewer",
-      "editor",
-      "manager",
-    ]),
-  );
 
   const listRequestsPermission = new CfnPermission(
     scope,
@@ -170,6 +149,7 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestListLambda.functionArn,
       principal: gatewayRoleArn,
+      sourceArn: gatewayArn,
     },
   );
   const listRequestsDependencies: IConstruct[] = [listRequestsPermission];
@@ -183,18 +163,11 @@ export function createGatewayTargets(
       gateway,
       lambdaFunction: requestListLambda,
       toolSchema: listRequestsToolSchema,
-      gatewayTargetName: "list-requests",
+      gatewayTargetName: requestToolNames.listRequests,
       description: "Lists Requests with GSI filtering",
     },
   );
   listRequestsTarget.node.addDependency(...listRequestsDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, listRequestsTarget.gatewayTargetName, [
-      "viewer",
-      "editor",
-      "manager",
-    ]),
-  );
 
   const updateRequestPermission = new CfnPermission(
     scope,
@@ -203,6 +176,7 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestUpdateLambda.functionArn,
       principal: gatewayRoleArn,
+      sourceArn: gatewayArn,
     },
   );
   const updateRequestDependencies: IConstruct[] = [updateRequestPermission];
@@ -217,17 +191,11 @@ export function createGatewayTargets(
       gateway,
       lambdaFunction: requestUpdateLambda,
       toolSchema: updateRequestToolSchema,
-      gatewayTargetName: "update-request",
+      gatewayTargetName: requestToolNames.updateRequest,
       description: "Updates Request fields",
     },
   );
   updateRequestTarget.node.addDependency(...updateRequestDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, updateRequestTarget.gatewayTargetName, [
-      "editor",
-      "manager",
-    ]),
-  );
 
   const submitRequestTarget = GatewayTarget.forLambda(
     scope,
@@ -236,17 +204,11 @@ export function createGatewayTargets(
       gateway,
       lambdaFunction: requestUpdateLambda,
       toolSchema: submitRequestToolSchema,
-      gatewayTargetName: "submit-request",
+      gatewayTargetName: requestToolNames.submitRequest,
       description: "Submits a Request",
     },
   );
   submitRequestTarget.node.addDependency(...updateRequestDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, submitRequestTarget.gatewayTargetName, [
-      "editor",
-      "manager",
-    ]),
-  );
 
   const withdrawRequestTarget = GatewayTarget.forLambda(
     scope,
@@ -255,17 +217,11 @@ export function createGatewayTargets(
       gateway,
       lambdaFunction: requestUpdateLambda,
       toolSchema: withdrawRequestToolSchema,
-      gatewayTargetName: "withdraw-request",
+      gatewayTargetName: requestToolNames.withdrawRequest,
       description: "Withdraws a Request",
     },
   );
   withdrawRequestTarget.node.addDependency(...updateRequestDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, withdrawRequestTarget.gatewayTargetName, [
-      "editor",
-      "manager",
-    ]),
-  );
 
   const approveRequestTarget = GatewayTarget.forLambda(
     scope,
@@ -274,14 +230,11 @@ export function createGatewayTargets(
       gateway,
       lambdaFunction: requestUpdateLambda,
       toolSchema: approveRequestToolSchema,
-      gatewayTargetName: "approve-request",
+      gatewayTargetName: requestToolNames.approveRequest,
       description: "Approves a Request",
     },
   );
   approveRequestTarget.node.addDependency(...updateRequestDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, approveRequestTarget.gatewayTargetName, ["manager"]),
-  );
 
   const rejectRequestTarget = GatewayTarget.forLambda(
     scope,
@@ -290,14 +243,11 @@ export function createGatewayTargets(
       gateway,
       lambdaFunction: requestUpdateLambda,
       toolSchema: rejectRequestToolSchema,
-      gatewayTargetName: "reject-request",
+      gatewayTargetName: requestToolNames.rejectRequest,
       description: "Rejects a Request",
     },
   );
   rejectRequestTarget.node.addDependency(...updateRequestDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, rejectRequestTarget.gatewayTargetName, ["manager"]),
-  );
 
   const returnRequestTarget = GatewayTarget.forLambda(
     scope,
@@ -306,14 +256,11 @@ export function createGatewayTargets(
       gateway,
       lambdaFunction: requestUpdateLambda,
       toolSchema: returnRequestToolSchema,
-      gatewayTargetName: "return-request",
+      gatewayTargetName: requestToolNames.returnRequest,
       description: "Returns a Request",
     },
   );
   returnRequestTarget.node.addDependency(...updateRequestDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, returnRequestTarget.gatewayTargetName, ["manager"]),
-  );
 
   const listRequestTypesPermission = new CfnPermission(
     scope,
@@ -322,6 +269,7 @@ export function createGatewayTargets(
       action: "lambda:InvokeFunction",
       functionName: requestTypeListLambda.functionArn,
       principal: gatewayRoleArn,
+      sourceArn: gatewayArn,
     },
   );
   const listRequestTypesDependencies: IConstruct[] = [listRequestTypesPermission];
@@ -335,18 +283,9 @@ export function createGatewayTargets(
       gateway,
       lambdaFunction: requestTypeListLambda,
       toolSchema: listRequestTypesToolSchema,
-      gatewayTargetName: "list-request-types",
+      gatewayTargetName: requestToolNames.listRequestTypes,
       description: "Lists active RequestType records",
     },
   );
   listRequestTypesTarget.node.addDependency(...listRequestTypesDependencies);
-  policies.push(
-    createGatewayPolicyDefinition(gatewayArn, listRequestTypesTarget.gatewayTargetName, [
-      "viewer",
-      "editor",
-      "manager",
-    ]),
-  );
-
-  return policies;
 }

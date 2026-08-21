@@ -36,12 +36,6 @@ const schema = a
     // 権限
     Role: a.enum(["viewer", "editor", "manager"]),
 
-    // チャットロール
-    ChatRole: a.enum(["user", "assistant"]),
-
-    // チャット履歴の並び順
-    SortDirection: a.enum(["ASC", "DESC"]),
-
     // =============================================
     // User Management Types
     // =============================================
@@ -214,30 +208,6 @@ const schema = a
       .authorization((allow) => [allow.authenticated()]),
 
     // =============================================
-    // Chat Models（外部テーブル参照 → a.model() に昇格）
-    // =============================================
-    ChatSession: a
-      .model({
-        appId: a.string().required(),
-        name: a.string(),
-        messages: a.hasMany("ChatMessage", "sessionId"),
-      })
-      .authorization((allow) => [allow.owner()])
-      .secondaryIndexes((index) => [index("appId")]),
-
-    ChatMessage: a
-      .model({
-        sessionId: a.id().required(),
-        appId: a.string().required(),
-        role: a.ref("ChatRole").required(),
-        content: a.string().required(),
-        traces: a.json(),
-        session: a.belongsTo("ChatSession", "sessionId"),
-      })
-      .authorization((allow) => [allow.owner()])
-      .secondaryIndexes((index) => [index("sessionId")]),
-
-    // =============================================
     // Asset Catalog Models
     // =============================================
 
@@ -380,18 +350,18 @@ const schema = a
     allow.authenticated(),
     allow.resource(preTokenGenerationFunction).to(["query"]),
     // AgentCore ツール Lambda に Data アクセス権を付与（AMPLIFY_DATA_DEFAULT_NAME 注入）
-    allow.resource(assetToolCreate),
-    allow.resource(assetToolDelete),
-    allow.resource(assetToolGet),
-    allow.resource(assetToolList),
-    allow.resource(assetToolUpdate),
-    allow.resource(assetTypeToolCreate),
-    allow.resource(assetTypeToolList),
-    allow.resource(requestToolCreate),
-    allow.resource(requestToolGet),
-    allow.resource(requestToolList),
-    allow.resource(requestToolUpdate),
-    allow.resource(requestTypeToolList),
+    allow.resource(assetToolCreate).to(["mutate"]),
+    allow.resource(assetToolDelete).to(["mutate"]),
+    allow.resource(assetToolGet).to(["query"]),
+    allow.resource(assetToolList).to(["query"]),
+    allow.resource(assetToolUpdate).to(["mutate"]),
+    allow.resource(assetTypeToolCreate).to(["mutate"]),
+    allow.resource(assetTypeToolList).to(["query"]),
+    allow.resource(requestToolCreate).to(["mutate"]),
+    allow.resource(requestToolGet).to(["query"]),
+    allow.resource(requestToolList).to(["query"]),
+    allow.resource(requestToolUpdate).to(["query", "mutate"]),
+    allow.resource(requestTypeToolList).to(["query"]),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;
